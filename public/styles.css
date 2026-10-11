@@ -4,3 +4,36 @@
 
 /* Nota de lembretes e política de cancelamento na confirmação da reserva */
 .booking-reminder-note { margin: 16px 0; padding: 13px 15px; border-left: 3px solid #b9874d; border-radius: 4px; background: #f4f1e9; color: #58594f; font-size: 13px; line-height: 1.55; }
+
+/* Refinamento visual do formulário, feedback de validação e microinterações */
+.booking-card{border:1px solid rgba(214,169,107,.22);box-shadow:0 28px 80px rgba(0,0,0,.24),0 2px 0 rgba(214,169,107,.12);transition:transform .5s cubic-bezier(.2,.8,.2,1),box-shadow .5s}
+.booking-card:hover{transform:translateY(-3px);box-shadow:0 34px 90px rgba(0,0,0,.28),0 2px 0 rgba(214,169,107,.2)}
+.booking-card-heading{position:relative;padding-bottom:19px;border-bottom:1px solid rgba(28,31,26,.09)}
+.booking-progress-copy{font-size:10px;line-height:1.65;color:#77796e;margin:9px 35px 0 0;transition:color .25s}
+.booking-progress-copy:not(.progress-complete){color:#77796e}
+.booking-progress-copy.progress-complete{color:#50734b}
+.booking-heading-mark{width:35px;height:35px;display:grid;place-items:center;flex-shrink:0;border:1px solid rgba(185,137,75,.45);color:var(--gold-dark);font-size:20px;animation:markFloat 4s ease-in-out infinite}
+.field{border-radius:7px;transition:border-color .25s,box-shadow .25s,background .25s,transform .25s}
+.field:focus{transform:translateY(-1px)}
+.field.field-invalid,.field[aria-invalid="true"]{border-color:#c84b43!important;background:#fff7f6!important;box-shadow:0 0 0 3px rgba(200,75,67,.12)!important;animation:fieldNudge .28s ease-out}
+.field-feedback{margin:6px 0 0;font-size:9px;line-height:1.6;color:#898a80;min-height:15px;transition:color .2s}
+.field-feedback.feedback-error{color:#b63e36;font-weight:600}
+.field-feedback.feedback-success{color:#52784b;font-weight:600}
+.field-group.has-field-error .field-label{color:#b63e36}
+.select-wrap .field.field-invalid{padding-right:36px}
+.booking-card .button-wide{position:relative;overflow:hidden;transition:transform .3s,box-shadow .3s,background .3s}
+.booking-card .button-wide:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(185,137,75,.24)}
+.booking-card .button-wide:active{transform:translateY(0) scale(.99)}
+.service-card,.fact,.section-heading,.about-copy,.location-copy,.final-cta-inner{animation:fadeInUp .75s both;animation-timing-function:cubic-bezier(.2,.7,.2,1)}
+.service-card{transition:transform .45s cubic-bezier(.2,.8,.2,1),box-shadow .45s,border-color .3s}
+.service-card:hover{transform:translateY(-7px);box-shadow:0 18px 42px rgba(35,38,29,.12)}
+.button,.service-book,.text-link,.nav-login{transition:transform .28s cubic-bezier(.2,.8,.2,1),color .25s,background .25s,box-shadow .28s}
+.button:hover,.service-book:hover{transform:translateY(-2px)}
+.brand-mark{transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.brand:hover .brand-mark{transform:rotate(12deg) scale(1.04)}
+.hero-photo{animation:heroDrift 22s ease-in-out infinite alternate}
+.map-label{animation:fadeInUp .8s .2s both}
+@keyframes markFloat{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-4px) rotate(7deg)}}
+@keyframes fieldNudge{0%,100%{transform:translateX(0)}35%{transform:translateX(-2px)}70%{transform:translateX(2px)}}
+@keyframes heroDrift{0%{transform:scale(1)}100%{transform:scale(1.055)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
