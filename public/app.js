@@ -105,22 +105,17 @@ function setupDateLimits() {
   $('#blockDate').max = '';
   $('#holidayDate').max = '';
 }
-function isValidBrazilMobile(value) {
-  const digits = normalizeCustomerPhone(value);
-  return /^\\d{2}9\\d{8}$/.test(digits);
-}
 function updateBookingStep() {
   const form = $('#bookingForm');
   if (!form) return;
   const fields = [
     ['#clientName', value => !!value.trim()],
-    ['#clientPhone', value => isValidBrazilMobile(value)],
-    ['#clientEmail', value => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.trim())],
+    ['#clientPhone', value => !!value.trim()],
+    ['#clientEmail', value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())],
     ['#serviceSelect', value => !!value],
     ['#appointmentDate', value => !!value],
     ['#appointmentTime', value => !!value]
   ];
-  const missing = [];
   fields.forEach(([selector, valid]) => {
     const input = $(selector);
     const group = input.closest('.field-group') || input.closest('.select-wrap') || input;
@@ -130,26 +125,20 @@ function updateBookingStep() {
     input.setAttribute('aria-invalid', showError ? 'true' : 'false');
     if (showError) group.classList.add('has-field-error');
     else group.classList.remove('has-field-error');
-    if (!isValid) missing.push(input);
   });
-  const phone = $('#clientPhone');
+
   const phoneHint = $('#phoneHint');
-  const phoneValid = isValidBrazilMobile(phone.value);
   if (phoneHint) {
-    phoneHint.textContent = !phone.value.trim()
-      ? 'Informe DDD + 9 + 8 dígitos. Ex.: (31) 99999-9999.'
-      : phoneValid
-        ? 'Telefone válido ✓'
-        : 'Confira o número: use DDD com 2 dígitos, o 9 inicial e mais 8 dígitos.';
-    phoneHint.classList.toggle('feedback-success', phoneValid);
-    phoneHint.classList.toggle('feedback-error', phone.value.trim().length > 0 && !phoneValid);
+    phoneHint.textContent = 'Informe um telefone com DDD para contato e consulta dos seus agendamentos.';
+    phoneHint.classList.remove('feedback-success', 'feedback-error');
   }
+
   const progress = $('#bookingProgressCopy');
   if (progress) {
     const labels = [];
     if (!$('#clientName').value.trim()) labels.push('nome');
-    if (!phoneValid) labels.push('telefone válido');
-    if (!$('#clientEmail').value.trim() || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test($('#clientEmail').value.trim())) labels.push('e-mail');
+    if (!$('#clientPhone').value.trim()) labels.push('telefone');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#clientEmail').value.trim())) labels.push('e-mail');
     if (!$('#serviceSelect').value) labels.push('serviço');
     if (!$('#appointmentDate').value) labels.push('data');
     if (!$('#appointmentTime').value) labels.push('horário');
@@ -210,12 +199,11 @@ async function submitBooking(event) {
   requiredFields.forEach(selector => { $(selector).dataset.touched = 'true'; });
   updateBookingStep();
   const firstInvalid = requiredFields.map(selector => $(selector)).find(input => {
-    if (input.id === 'clientPhone') return !isValidBrazilMobile(input.value);
-    if (input.id === 'clientEmail') return !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.value.trim());
+    if (input.id === 'clientEmail') return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
     return !input.value.trim();
   });
   if (firstInvalid) {
-    showToast(firstInvalid.id === 'clientPhone' ? 'Confira o telefone: DDD + 9 + 8 dígitos.' : 'Confira os campos destacados em vermelho.', 'error');
+    showToast('Preencha os campos obrigatórios destacados em vermelho.', 'error');
     firstInvalid.focus();
     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
@@ -475,7 +463,49 @@ function openAdminModal() {
   } else setAdminView(false);
 }
 
+
+function setupScrollAnimations() {
+  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const selectors = [
+    '.quick-facts .fact',
+    '.services-section .section-heading',
+    '.service-card',
+    '.booking-intro',
+    '.booking-card',
+    '.about-image',
+    '.about-copy',
+    '.quote-band .quote-ornament',
+    '.quote-band p',
+    '.location-copy',
+    '.map-card',
+    '.final-cta-inner',
+    '.site-footer .footer-main'
+  ];
+  const elements = selectors.flatMap(selector => $$(selector));
+  if (!elements.length) return;
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      entry.target.classList.add('motion-in');
+      observer.unobserve(entry.target);
+    });
+  }, { rootMargin: '0px 0px -7% 0px', threshold: 0.12 });
+
+  elements.forEach(element => {
+    element.classList.add('motion-reveal');
+    if (element.classList.contains('service-card')) {
+      const siblings = [...element.parentElement.querySelectorAll('.service-card')];
+      element.style.setProperty('--motion-delay', String(Math.max(0, siblings.indexOf(element)) * 75) + 'ms');
+    } else if (element.classList.contains('fact')) {
+      const siblings = [...element.parentElement.querySelectorAll('.fact')];
+      element.style.setProperty('--motion-delay', String(Math.max(0, siblings.indexOf(element)) * 65) + 'ms');
+    }
+    observer.observe(element);
+  });
+}
+
 function bindEvents() {
+  setupScrollAnimations();
   $('#year').textContent = new Date().getFullYear();
   $('#menuToggle').addEventListener('click', () => {
     const open = $('#mainNav').classList.toggle('open');
