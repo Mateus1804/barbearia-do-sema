@@ -105,11 +105,28 @@ function setupDateLimits() {
   $('#blockDate').max = '';
   $('#holidayDate').max = '';
 }
+function updateBookingStep() {
+  const name = $('#clientName').value.trim();
+  const phone = normalizeCustomerPhone($('#clientPhone').value);
+  const email = $('#clientEmail').value.trim();
+  const service = $('#serviceSelect').value;
+  const date = $('#appointmentDate').value;
+  const time = $('#appointmentTime').value;
+
+  let step = 1;
+  if (name && phone && email) step = 2;
+  if (service && date && time) step = 3;
+
+  const stepEl = $('.booking-step');
+  if (stepEl) stepEl.textContent = `0${step} `;
+  if (stepEl) stepEl.innerHTML = `0${step} <i>/ 03</i>`;
+}
 function updateBookingSummary() {
   const service = getService($('#serviceSelect').value);
   $('#summaryService').textContent = service ? `${service.nome} · ${service.duracao_minutos} min` : 'Selecione um serviço';
   $('#summaryPrice').textContent = service ? money(service.preco) : '—';
   $('#bookingSummary').classList.toggle('summary-selected', !!service);
+  updateBookingStep();
 }
 async function loadAvailableSlots(date, serviceId, selectElement = $('#appointmentTime'), hintElement = $('#availabilityHint'), { currentSlot = null } = {}) {
   selectElement.disabled = true;
@@ -431,7 +448,11 @@ function bindEvents() {
   $$('.modal-backdrop').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal-backdrop:not(.hidden)').forEach(m => closeModal(m.id)); });
   $('#serviceSelect').addEventListener('change', async () => { updateBookingSummary(); await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); });
-  $('#appointmentDate').addEventListener('change', () => loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value));
+  $('#appointmentDate').addEventListener('change', () => { loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); updateBookingStep(); });
+  $('#appointmentTime').addEventListener('change', updateBookingStep);
+  $('#clientName').addEventListener('input', updateBookingStep);
+  $('#clientPhone').addEventListener('change', updateBookingStep);
+  $('#clientEmail').addEventListener('change', updateBookingStep);
   $('#bookingForm').addEventListener('submit', submitBooking);
   $('#clientPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; });
   $('#lookupPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; });
