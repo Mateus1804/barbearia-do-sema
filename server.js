@@ -14,6 +14,8 @@ const nodemailer = require('nodemailer');
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const TIME_ZONE = 'America/Sao_Paulo';
+const MIN_BOOKING_NOTICE_MS = 10 * 60_000;
+const REMINDER_DELIVERY_WINDOW_MS = 15 * 60_000;
 const ADMIN_EMAIL = String(process.env.ADMIN_EMAIL || 'sema@barbeariadosema.com.br').trim().toLowerCase();
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || 'Sema@2026!');
 const JWT_SECRET = process.env.JWT_SECRET || 'development-only-change-me-before-deploying-2026';
@@ -64,6 +66,7 @@ CREATE TABLE IF NOT EXISTS agendamentos (
   motivo_cancelamento TEXT,
   criado_em TEXT NOT NULL,
   atualizado_em TEXT NOT NULL,
+  programado_em TEXT NOT NULL,
   lembrete_24h_enviado_em TEXT,
   lembrete_3h_enviado_em TEXT
 );
@@ -93,12 +96,6 @@ CREATE TABLE IF NOT EXISTS admin (
   email TEXT NOT NULL,
   senha_hash TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS login_attempts (
-  telefone TEXT PRIMARY KEY,
-  tentativas INTEGER NOT NULL DEFAULT 0,
-  dia TEXT NOT NULL,
-  bloqueado_ate TEXT
-);
 `);
 
 // Migração automática: remove o antigo código de confirmação sem apagar os agendamentos já salvos.
@@ -113,11 +110,11 @@ if (migratedFromCode) {
         servico_id INTEGER NOT NULL REFERENCES servicos(id), data_agendamento TEXT NOT NULL, hora_agendamento TEXT NOT NULL,
         starts_at_utc TEXT NOT NULL, duracao_minutos INTEGER NOT NULL,
         status TEXT NOT NULL DEFAULT 'agendado' CHECK(status IN ('agendado','presente','cancelado')),
-        motivo_cancelamento TEXT, criado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL,
+        motivo_cancelamento TEXT, criado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL, programado_em TEXT NOT NULL,
         lembrete_24h_enviado_em TEXT, lembrete_3h_enviado_em TEXT
       );
-      INSERT INTO agendamentos (id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em)
-      SELECT id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em FROM agendamentos_com_codigo;
+      INSERT INTO agendamentos (id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em,programado_em)
+      SELECT id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em,COALESCE(atualizado_em,criado_em) FROM agendamentos_com_codigo;
       DROP TABLE agendamentos_com_codigo;`);
   });
   migrateAppointments();
@@ -126,6 +123,8 @@ if (migratedFromCode) {
 const existingColumns = appointmentColumns();
 if (!existingColumns.includes('lembrete_24h_enviado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_24h_enviado_em TEXT');
 if (!existingColumns.includes('lembrete_3h_enviado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_3h_enviado_em TEXT');
+if (!existingColumns.includes('programado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN programado_em TEXT');
+db.exec("UPDATE agendamentos SET programado_em = COALESCE(programado_em, atualizado_em, criado_em) WHERE programado_em IS NULL OR trim(programado_em) = ''");
 db.exec(`CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos(data_agendamento, hora_agendamento);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_telefone ON agendamentos(cliente_telefone);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_email ON agendamentos(cliente_email);`);
@@ -134,8 +133,8 @@ const backfillCustomers = db.prepare(`INSERT INTO clientes (cliente_nome,cliente
 for (const oldCustomer of db.prepare(`SELECT cliente_nome,cliente_telefone,cliente_email,MIN(criado_em) AS criado_em,MAX(atualizado_em) AS atualizado_em FROM agendamentos WHERE cliente_email IS NOT NULL AND trim(cliente_email) != '' GROUP BY cliente_telefone,cliente_email`).all()) {
   backfillCustomers.run(oldCustomer.cliente_nome, oldCustomer.cliente_telefone, oldCustomer.cliente_email.toLowerCase(), oldCustomer.criado_em, oldCustomer.atualizado_em);
 }
-// Limpa bloqueios do método antigo apenas uma vez, durante a migração.
-if (migratedFromCode) db.prepare('DELETE FROM login_attempts').run();
+// Remove a tabela legada de tentativas: a consulta do cliente não usa bloqueio por telefone.
+db.exec('DROP TABLE IF EXISTS login_attempts');
 
 const seed = db.prepare(`INSERT INTO servicos (id,nome,preco_cents,duracao_minutos,descricao) VALUES (@id,@nome,@preco_cents,@duracao_minutos,@descricao) ON CONFLICT(id) DO NOTHING`);
 [
@@ -244,6 +243,22 @@ function ensureDate(dateStr, { allowToday = false } = {}) {
 function startUtc(dateStr, timeStr) { return localToUtc(dateStr, timeStr); }
 function durationSlots(mins) { return Math.ceil(Number(mins) / 30); }
 function isValidTimeFormat(t) { return /^([01]\d|2[0-3]):(00|30)$/.test(String(t || '')); }
+function hasMinimumBookingNotice(start, now = Date.now()) {
+  const startMs = start instanceof Date ? start.getTime() : new Date(start).getTime();
+  return Number.isFinite(startMs) && startMs - now >= MIN_BOOKING_NOTICE_MS;
+}
+function shouldSendReminder(appointment, type, now = Date.now()) {
+  const thresholdMs = type === '24h' ? 24 * 60 * 60_000 : type === '3h' ? 3 * 60 * 60_000 : 0;
+  if (!thresholdMs) return false;
+  const startMs = Date.parse(appointment.starts_at_utc);
+  const programmedAt = Date.parse(appointment.programado_em || appointment.atualizado_em || appointment.criado_em);
+  const timeUntilStart = startMs - now;
+  const bookingLeadTime = startMs - programmedAt;
+  return Number.isFinite(startMs) && Number.isFinite(programmedAt)
+    && bookingLeadTime >= thresholdMs
+    && timeUntilStart <= thresholdMs
+    && timeUntilStart > thresholdMs - REMINDER_DELIVERY_WINDOW_MS;
+}
 function hasOverlap(dateStr, timeStr, durationMinutes, ignoreId = null) {
   const start = startUtc(dateStr, timeStr).getTime();
   const end = start + durationMinutes * 60_000;
@@ -266,15 +281,14 @@ function hasOverlap(dateStr, timeStr, durationMinutes, ignoreId = null) {
   return false;
 }
 function validateBookable({ date, time, service, isAdmin = false, ignoreId = null }) {
-  ensureDate(date, { allowToday: isAdmin });
+  ensureDate(date, { allowToday: true });
   if (!service) throw new HttpError(400, 'Selecione um serviço válido.');
   if (!isValidTimeFormat(time)) throw new HttpError(400, 'Selecione um horário válido.');
   const minsFromMidnight = Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
   if (minsFromMidnight < 9 * 60 || minsFromMidnight >= 19 * 60 + 30) throw new HttpError(400, 'O horário precisa estar entre 09h e 19h30.');
   if (minsFromMidnight + service.duracao_minutos > 19 * 60 + 30) throw new HttpError(400, 'Esse serviço ultrapassa o horário de fechamento.');
-  if (date === localToday() && !isAdmin) throw new HttpError(400, 'Para agendar, escolha um dia a partir de amanhã.');
   const start = startUtc(date, time);
-  if (start.getTime() - Date.now() < 2 * 60 * 60_000) throw new HttpError(400, 'O agendamento precisa ser feito com pelo menos 2 horas de antecedência.');
+  if (!hasMinimumBookingNotice(start)) throw new HttpError(400, 'O agendamento precisa ser feito com pelo menos 10 minutos de antecedência.');
   if (hasOverlap(date, time, service.duracao_minutos, ignoreId)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
 }
 function requireAdmin(req, res, next) {
@@ -291,16 +305,8 @@ function validCustomerAuth(phoneInput, emailInput) {
   const phone = normalizePhone(phoneInput);
   const email = normalizeEmail(emailInput);
   if (!validBrazilianPhone(phone) || !validEmail(email)) return { ok: false, phone };
-  const today = localToday();
-  const attempt = db.prepare('SELECT * FROM login_attempts WHERE telefone=?').get(phone);
-  if (attempt && attempt.dia === today && attempt.bloqueado_ate && new Date(attempt.bloqueado_ate) > new Date()) return { ok: false, phone, blocked: true };
   const ok = !!db.prepare('SELECT id FROM clientes WHERE cliente_telefone=? AND cliente_email=? COLLATE NOCASE').get(phone, email);
-  if (ok) { db.prepare('DELETE FROM login_attempts WHERE telefone=?').run(phone); return { ok: true, phone, email }; }
-  let tries = attempt && attempt.dia === today ? attempt.tentativas : 0;
-  tries += 1;
-  const blockedUntil = tries >= 3 ? new Date(Date.now() + 24 * 60 * 60_000).toISOString() : null;
-  db.prepare(`INSERT INTO login_attempts (telefone,tentativas,dia,bloqueado_ate) VALUES (?,?,?,?) ON CONFLICT(telefone) DO UPDATE SET tentativas=excluded.tentativas,dia=excluded.dia,bloqueado_ate=excluded.bloqueado_ate`).run(phone, tries, today, blockedUntil);
-  return { ok: false, phone, blocked: tries >= 3 };
+  return ok ? { ok: true, phone, email } : { ok: false, phone };
 }
 function catchRoute(fn) { return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next); }
 
@@ -314,16 +320,14 @@ app.get('/api/available-slots/:data/:service_id', (req, res, next) => {
   try {
     const date = req.params.data;
     const service = getService(req.params.service_id);
-    // Reuse date validation but allow date today to return an empty list rather than break the booking UI.
     ensureDate(date, { allowToday: true });
-    if (date === localToday()) return res.json({ data: date, service_id: service?.id, slots: [], message: 'Agendamentos online devem ser feitos a partir de amanhã.' });
     if (!service) throw new HttpError(404, 'Serviço não encontrado.');
     const slots = [];
     for (let minutes = 9 * 60; minutes < 19 * 60 + 30; minutes += 30) {
       const time = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
       if (minutes + service.duracao_minutos > 19 * 60 + 30) continue;
       const start = startUtc(date, time);
-      if (start.getTime() - Date.now() < 2 * 60 * 60_000) continue;
+      if (!hasMinimumBookingNotice(start)) continue;
       if (!hasOverlap(date, time, service.duracao_minutos)) slots.push(time);
     }
     res.json({ data: date, service_id: service.id, slots });
@@ -347,7 +351,7 @@ app.post('/api/appointments', (req, res, next) => {
     const create = db.transaction(() => {
       if (hasOverlap(date, time, service.duracao_minutos)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
       registerCustomer({ name, phone, email, now });
-      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now);
+      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now);
       id = Number(result.lastInsertRowid);
     });
     create();
@@ -358,7 +362,7 @@ app.post('/api/appointments', (req, res, next) => {
 app.post('/api/authenticate', (req, res, next) => {
   try {
     const auth = validCustomerAuth(req.body.telefone, req.body.email);
-    if (!auth.ok) throw new HttpError(401, auth.blocked ? 'Acesso temporariamente bloqueado por segurança. Tente novamente amanhã.' : 'Telefone e e-mail não conferem. Confira os dados e tente novamente.');
+    if (!auth.ok) throw new HttpError(401, 'Telefone e e-mail não conferem. Confira os dados e tente novamente.');
     const rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.cliente_telefone=? AND lower(a.cliente_email)=? ORDER BY a.data_agendamento DESC,a.hora_agendamento DESC`).all(auth.phone, auth.email);
     res.json({ agendamentos: rows.map(publicAppointment) });
   } catch (e) { next(e); }
@@ -367,7 +371,7 @@ app.post('/api/authenticate', (req, res, next) => {
 app.put('/api/appointments/:id', (req, res, next) => {
   try {
     const auth = validCustomerAuth(req.body.telefone, req.body.email);
-    if (!auth.ok) throw new HttpError(401, auth.blocked ? 'Acesso temporariamente bloqueado por segurança. Tente novamente amanhã.' : 'Telefone e e-mail não conferem.');
+    if (!auth.ok) throw new HttpError(401, 'Telefone e e-mail não conferem.');
     const old = getAppointment(req.params.id);
     if (!old || old.cliente_telefone !== auth.phone || normalizeEmail(old.cliente_email) !== auth.email) throw new HttpError(404, 'Agendamento não encontrado.');
     if (old.status === 'cancelado') throw new HttpError(400, 'Este agendamento já foi cancelado.');
@@ -377,7 +381,8 @@ app.put('/api/appointments/:id', (req, res, next) => {
     validateBookable({ date, time, service, ignoreId: old.id });
     const update = db.transaction(() => {
       if (hasOverlap(date, time, service.duracao_minutos, old.id)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
-      db.prepare(`UPDATE agendamentos SET servico_id=?,data_agendamento=?,hora_agendamento=?,starts_at_utc=?,duracao_minutos=?,atualizado_em=?,lembrete_24h_enviado_em=NULL,lembrete_3h_enviado_em=NULL WHERE id=?`).run(service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, new Date().toISOString(), old.id);
+      const scheduleUpdatedAt = new Date().toISOString();
+      db.prepare(`UPDATE agendamentos SET servico_id=?,data_agendamento=?,hora_agendamento=?,starts_at_utc=?,duracao_minutos=?,atualizado_em=?,programado_em=?,lembrete_24h_enviado_em=NULL,lembrete_3h_enviado_em=NULL WHERE id=?`).run(service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, scheduleUpdatedAt, scheduleUpdatedAt, old.id);
     });
     update();
     res.json({ message: 'Agendamento atualizado.', agendamento: publicAppointment(getAppointment(old.id)) });
@@ -387,7 +392,7 @@ app.put('/api/appointments/:id', (req, res, next) => {
 app.delete('/api/appointments/:id', (req, res, next) => {
   try {
     const auth = validCustomerAuth(req.body.telefone, req.body.email);
-    if (!auth.ok) throw new HttpError(401, auth.blocked ? 'Acesso temporariamente bloqueado por segurança. Tente novamente amanhã.' : 'Telefone e e-mail não conferem.');
+    if (!auth.ok) throw new HttpError(401, 'Telefone e e-mail não conferem.');
     const a = getAppointment(req.params.id);
     if (!a || a.cliente_telefone !== auth.phone || normalizeEmail(a.cliente_email) !== auth.email) throw new HttpError(404, 'Agendamento não encontrado.');
     if (a.status === 'cancelado') throw new HttpError(400, 'Este agendamento já foi cancelado.');
@@ -417,7 +422,7 @@ app.get('/admin/available-slots/:data/:service_id', requireAdmin, (req, res, nex
     for (let minutes = 9 * 60; minutes < 19 * 60 + 30; minutes += 30) {
       const time = `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
       if (minutes + service.duracao_minutos > 19 * 60 + 30) continue;
-      if (startUtc(date, time).getTime() - Date.now() < 2 * 60 * 60_000) continue;
+      if (!hasMinimumBookingNotice(startUtc(date, time))) continue;
       if (!hasOverlap(date, time, service.duracao_minutos)) slots.push(time);
     }
     res.json({ data: date, service_id: service.id, slots });
@@ -440,7 +445,7 @@ app.post('/admin/appointments', requireAdmin, (req, res, next) => {
     const create = db.transaction(() => {
       if (hasOverlap(date, time, service.duracao_minutos)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
       registerCustomer({ name, phone, email, now });
-      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now);
+      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now);
       id = Number(result.lastInsertRowid);
     });
     create();
@@ -462,8 +467,8 @@ app.post('/admin/appointments/:id/confirm', requireAdmin, (req, res, next) => {
     const a = getAppointment(req.params.id);
     if (!a) throw new HttpError(404, 'Agendamento não encontrado.');
     if (a.status === 'cancelado') throw new HttpError(400, 'Não é possível confirmar um agendamento cancelado.');
-    db.prepare(`UPDATE agendamentos SET status='presente',atualizado_em=? WHERE id=?`).run(new Date().toISOString(), a.id);
-    res.json({ message: 'Presença confirmada.', agendamento: publicAppointment(getAppointment(a.id)) });
+    db.prepare(`UPDATE agendamentos SET status='presente' WHERE id=?`).run(a.id);
+    res.json({ message: 'Presença pré-confirmada.', agendamento: publicAppointment(getAppointment(a.id)) });
   } catch (e) { next(e); }
 });
 app.post('/admin/appointments/:id/cancel', requireAdmin, (req, res, next) => {
@@ -482,10 +487,31 @@ app.post('/admin/block-slots', requireAdmin, (req, res, next) => {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HttpError(400, 'Informe uma data válida.');
     const [y,m,d] = date.split('-').map(Number); const parsed = new Date(Date.UTC(y,m-1,d));
     if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m-1 || parsed.getUTCDate() !== d) throw new HttpError(400, 'Informe uma data válida.');
-    if (!isValidTimeFormat(req.body.hora) || Number(req.body.hora.slice(0,2))*60+Number(req.body.hora.slice(3)) < 9*60 || Number(req.body.hora.slice(0,2))*60+Number(req.body.hora.slice(3)) >= 19*60+30) throw new HttpError(400, 'Escolha um horário de meia em meia hora, entre 09h e 19h.');
+    const startTime = String(req.body.hora || '');
+    const startMinutes = isValidTimeFormat(startTime) ? Number(startTime.slice(0,2))*60+Number(startTime.slice(3)) : -1;
+    if (!isValidTimeFormat(startTime) || startMinutes < 9*60 || startMinutes >= 19*60+30) throw new HttpError(400, 'Escolha um horário de início entre 09h e 19h, de meia em meia hora.');
+    const endTime = String(req.body.hora_fim || '');
+    const endMinutes = endTime ? (isValidTimeFormat(endTime) ? Number(endTime.slice(0,2))*60+Number(endTime.slice(3)) : -1) : startMinutes + 30;
+    if (endMinutes <= startMinutes || endMinutes > 19*60+30 || (endTime && !isValidTimeFormat(endTime))) throw new HttpError(400, 'O horário final deve ser posterior ao inicial e não ultrapassar 19h30.');
     const reason = cleanText(req.body.motivo, 140) || 'Horário bloqueado pelo barbeiro';
-    db.prepare(`INSERT INTO horarios_bloqueados (data,hora,motivo) VALUES (?,?,?) ON CONFLICT(data,hora) DO UPDATE SET motivo=excluded.motivo`).run(date, req.body.hora, reason);
-    res.status(201).json({ message: 'Horário bloqueado.' });
+    const blockRange = db.transaction(() => {
+      const rangeStart = startUtc(date, startTime).getTime();
+      const endLabel = `${pad(Math.floor(endMinutes/60))}:${pad(endMinutes%60)}`;
+      const rangeEnd = startUtc(date, endLabel).getTime();
+      const appointments = db.prepare("SELECT hora_agendamento,duracao_minutos FROM agendamentos WHERE data_agendamento=? AND status!='cancelado'").all(date);
+      for (const appointment of appointments) {
+        const appointmentStart = startUtc(date, appointment.hora_agendamento).getTime();
+        const appointmentEnd = appointmentStart + appointment.duracao_minutos * 60_000;
+        if (rangeStart < appointmentEnd && rangeEnd > appointmentStart) throw new HttpError(409, 'Essa faixa coincide com um atendimento já agendado. Cancele ou reorganize o atendimento antes de bloquear.');
+      }
+      const insert = db.prepare(`INSERT INTO horarios_bloqueados (data,hora,motivo) VALUES (?,?,?) ON CONFLICT(data,hora) DO UPDATE SET motivo=excluded.motivo`);
+      for (let minutes = startMinutes; minutes < endMinutes; minutes += 30) {
+        insert.run(date, `${pad(Math.floor(minutes/60))}:${pad(minutes%60)}`, reason);
+      }
+    });
+    blockRange();
+    const count = (endMinutes - startMinutes) / 30;
+    res.status(201).json({ message: count === 1 ? 'Horário bloqueado.' : `${count} horários bloqueados.` });
   } catch (e) { next(e); }
 });
 app.delete('/admin/block-slots/:id', requireAdmin, (req, res, next) => {
@@ -542,23 +568,18 @@ async function dispatchDueReminders() {
   if (!mailer || reminderJobRunning) return;
   reminderJobRunning = true;
   try {
-    const rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.status='agendado' AND a.cliente_email IS NOT NULL AND trim(a.cliente_email) != '' AND a.starts_at_utc > ? ORDER BY a.starts_at_utc`).all(new Date().toISOString());
     const now = Date.now();
-    const dayMs = 24 * 60 * 60_000;
-    const threeHoursMs = 3 * 60 * 60_000;
+    const rows = db.prepare("SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.status IN ('agendado','presente') AND a.cliente_email IS NOT NULL AND trim(a.cliente_email) != '' AND a.starts_at_utc > ? ORDER BY a.starts_at_utc").all(new Date(now).toISOString());
     for (const appointment of rows) {
-      const delta = new Date(appointment.starts_at_utc).getTime() - now;
-      if (!Number.isFinite(delta) || delta <= 0) continue;
-      if (!appointment.lembrete_24h_enviado_em && delta <= dayMs && delta > threeHoursMs) {
+      if (!appointment.lembrete_24h_enviado_em && shouldSendReminder(appointment, '24h', now)) {
         try {
           if (await sendReminderEmail(appointment, '24h')) db.prepare('UPDATE agendamentos SET lembrete_24h_enviado_em=? WHERE id=? AND lembrete_24h_enviado_em IS NULL').run(new Date().toISOString(), appointment.id);
-        } catch (error) { console.error(`[lembretes] Falha no lembrete de 24h do agendamento ${appointment.id}:`, error.message); }
+        } catch (error) { console.error('[lembretes] Falha no lembrete de 24h do agendamento ' + appointment.id + ':', error.message); }
       }
-      // Se o servidor ficou desligado e perdeu o lembrete de 24h, prioriza o de 3h ao reabrir perto do atendimento.
-      if (!appointment.lembrete_3h_enviado_em && delta <= threeHoursMs) {
+      if (!appointment.lembrete_3h_enviado_em && shouldSendReminder(appointment, '3h', now)) {
         try {
           if (await sendReminderEmail(appointment, '3h')) db.prepare('UPDATE agendamentos SET lembrete_3h_enviado_em=? WHERE id=? AND lembrete_3h_enviado_em IS NULL').run(new Date().toISOString(), appointment.id);
-        } catch (error) { console.error(`[lembretes] Falha no lembrete de 3h do agendamento ${appointment.id}:`, error.message); }
+        } catch (error) { console.error('[lembretes] Falha no lembrete de 3h do agendamento ' + appointment.id + ':', error.message); }
       }
     }
   } finally { reminderJobRunning = false; }
@@ -586,4 +607,4 @@ if (require.main === module) {
     reminderTimer.unref();
   });
 }
-module.exports = { app, db, localToUtc, utcToLocal, durationSlots, validBrazilianPhone, hasOverlap, ensureDate, validEmail, dispatchDueReminders };
+module.exports = { app, db, localToUtc, utcToLocal, durationSlots, validBrazilianPhone, hasOverlap, ensureDate, validEmail, validCustomerAuth, hasMinimumBookingNotice, shouldSendReminder, dispatchDueReminders };
