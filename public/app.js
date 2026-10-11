@@ -105,21 +105,57 @@ function setupDateLimits() {
   $('#blockDate').max = '';
   $('#holidayDate').max = '';
 }
+function isValidBrazilMobile(value) {
+  const digits = normalizeCustomerPhone(value);
+  return /^\\d{2}9\\d{8}$/.test(digits);
+}
 function updateBookingStep() {
-  const name = $('#clientName').value.trim();
-  const phone = normalizeCustomerPhone($('#clientPhone').value);
-  const email = $('#clientEmail').value.trim();
-  const service = $('#serviceSelect').value;
-  const date = $('#appointmentDate').value;
-  const time = $('#appointmentTime').value;
-
-  let step = 1;
-  if (name && phone && email) step = 2;
-  if (service && date && time) step = 3;
-
-  const stepEl = $('.booking-step');
-  if (stepEl) stepEl.textContent = `0${step} `;
-  if (stepEl) stepEl.innerHTML = `0${step} <i>/ 03</i>`;
+  const form = $('#bookingForm');
+  if (!form) return;
+  const fields = [
+    ['#clientName', value => !!value.trim()],
+    ['#clientPhone', value => isValidBrazilMobile(value)],
+    ['#clientEmail', value => /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.trim())],
+    ['#serviceSelect', value => !!value],
+    ['#appointmentDate', value => !!value],
+    ['#appointmentTime', value => !!value]
+  ];
+  const missing = [];
+  fields.forEach(([selector, valid]) => {
+    const input = $(selector);
+    const group = input.closest('.field-group') || input.closest('.select-wrap') || input;
+    const isValid = valid(input.value);
+    const showError = input.dataset.touched === 'true' && !isValid;
+    input.classList.toggle('field-invalid', showError);
+    input.setAttribute('aria-invalid', showError ? 'true' : 'false');
+    if (showError) group.classList.add('has-field-error');
+    else group.classList.remove('has-field-error');
+    if (!isValid) missing.push(input);
+  });
+  const phone = $('#clientPhone');
+  const phoneHint = $('#phoneHint');
+  const phoneValid = isValidBrazilMobile(phone.value);
+  if (phoneHint) {
+    phoneHint.textContent = !phone.value.trim()
+      ? 'Informe DDD + 9 + 8 dígitos. Ex.: (31) 99999-9999.'
+      : phoneValid
+        ? 'Telefone válido ✓'
+        : 'Confira o número: use DDD com 2 dígitos, o 9 inicial e mais 8 dígitos.';
+    phoneHint.classList.toggle('feedback-success', phoneValid);
+    phoneHint.classList.toggle('feedback-error', phone.value.trim().length > 0 && !phoneValid);
+  }
+  const progress = $('#bookingProgressCopy');
+  if (progress) {
+    const labels = [];
+    if (!$('#clientName').value.trim()) labels.push('nome');
+    if (!phoneValid) labels.push('telefone válido');
+    if (!$('#clientEmail').value.trim() || !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test($('#clientEmail').value.trim())) labels.push('e-mail');
+    if (!$('#serviceSelect').value) labels.push('serviço');
+    if (!$('#appointmentDate').value) labels.push('data');
+    if (!$('#appointmentTime').value) labels.push('horário');
+    progress.textContent = labels.length ? 'Falta preencher: ' + labels.join(', ') + '.' : 'Tudo certo! Confira os dados e confirme seu agendamento.';
+    progress.classList.toggle('progress-complete', labels.length === 0);
+  }
 }
 function updateBookingSummary() {
   const service = getService($('#serviceSelect').value);
@@ -170,8 +206,19 @@ async function submitBooking(event) {
     data: $('#appointmentDate').value,
     hora: $('#appointmentTime').value
   };
-  if (!body.nome || !body.telefone || !body.email || !body.servico_id || !body.data || !body.hora) {
-    showToast('Preencha nome, telefone, e-mail, serviço, data e horário.', 'error'); return;
+  const requiredFields = ['#clientName', '#clientPhone', '#clientEmail', '#serviceSelect', '#appointmentDate', '#appointmentTime'];
+  requiredFields.forEach(selector => { $(selector).dataset.touched = 'true'; });
+  updateBookingStep();
+  const firstInvalid = requiredFields.map(selector => $(selector)).find(input => {
+    if (input.id === 'clientPhone') return !isValidBrazilMobile(input.value);
+    if (input.id === 'clientEmail') return !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.value.trim());
+    return !input.value.trim();
+  });
+  if (firstInvalid) {
+    showToast(firstInvalid.id === 'clientPhone' ? 'Confira o telefone: DDD + 9 + 8 dígitos.' : 'Confira os campos destacados em vermelho.', 'error');
+    firstInvalid.focus();
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
   }
   setBusy(button, true, 'Reservando seu horário...');
   try {
@@ -454,7 +501,13 @@ function bindEvents() {
   $('#clientPhone').addEventListener('change', updateBookingStep);
   $('#clientEmail').addEventListener('change', updateBookingStep);
   $('#bookingForm').addEventListener('submit', submitBooking);
-  $('#clientPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; });
+  ['#clientName', '#clientPhone', '#clientEmail', '#serviceSelect', '#appointmentDate', '#appointmentTime'].forEach(selector => {
+    const input = $(selector);
+    input.addEventListener('blur', () => { input.dataset.touched = 'true'; updateBookingStep(); });
+    input.addEventListener('input', updateBookingStep);
+    input.addEventListener('change', updateBookingStep);
+  });
+  $('#clientPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; updateBookingStep(); });
   $('#lookupPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; });
   $('#customerLoginForm').addEventListener('submit', authenticateCustomer);
   $('#customerAppointments').addEventListener('click', async e => {
