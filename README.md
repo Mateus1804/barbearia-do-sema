@@ -37,17 +37,17 @@ Para demonstração local, se as variáveis não forem alteradas, o acesso inici
 
 Preencha no `.env` as variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` e `EMAIL_FROM`. O `.env.example` traz os campos vazios para não ativar o envio com credenciais de exemplo. Para Gmail, use uma senha de app, e não a senha normal da conta. O envio é feito por SMTP com Nodemailer; documentação: https://nodemailer.com/smtp.
 
-O servidor verifica a agenda a cada minuto e envia um lembrete quando o atendimento se aproxima de 24 horas e outro quando faltam cerca de 3 horas. Os envios realizados ficam registrados no SQLite para evitar repetição. **O servidor precisa permanecer ligado e o SMTP precisa estar configurado**; se o serviço estiver desligado ou o provedor recusar a mensagem, não é possível garantir o envio na hora exata. Os e-mails informam que o cancelamento pelo site só pode ser feito até 2 horas antes do atendimento.
+O servidor verifica a agenda a cada minuto. O lembrete de 24 horas só é enviado se a última criação ou alteração do agendamento tiver ocorrido com pelo menos 24 horas de antecedência; o de 3 horas segue a mesma regra, exigindo pelo menos 3 horas. Cada lembrete é enviado uma única vez, dentro de uma janela de 15 minutos após o momento previsto, e o envio fica registrado no SQLite. Agendamentos feitos a menos de 3 horas do atendimento não recebem o lembrete de 3 horas; feitos a menos de 24 horas não recebem o de 24 horas. **O servidor precisa permanecer ligado e o SMTP precisa estar configurado**; uma indisponibilidade maior que a janela pode fazer um lembrete ser perdido. Os e-mails informam que o cancelamento pelo site só pode ser feito até 2 horas antes do atendimento.
 
 ## Como funciona
 
 - Ao agendar pelo site ou painel, nome, telefone e e-mail são salvos/atualizados no pré-cadastro de clientes e vinculados à reserva. O e-mail agora é obrigatório.
 - Para consultar agendamentos, o cliente informa **telefone + e-mail cadastrados juntos**. Isso evita que alguém acesse a agenda alheia sabendo somente um desses dados.
 - Alteração e cancelamento exigem a mesma combinação telefone + e-mail e antecedência mínima de 2 horas.
-- Há no máximo 3 tentativas incorretas por telefone por dia.
 - Os horários são gerados em intervalos de 30 minutos; a duração real do serviço fica armazenada e é arredondada para cima ao calcular os slots bloqueados.
-- Domingo, almoço (12h–13h), feriados, bloqueios manuais, datas fora dos próximos 30 dias e horários passados são recusados. Clientes não podem agendar no mesmo dia; o painel administrativo permite encaixes no dia, sempre com 2 horas mínimas de antecedência.
+- Domingo, almoço (12h–13h), dias fechados, bloqueios manuais, datas fora dos próximos 30 dias e horários que comecem em menos de 10 minutos são recusados. O agendamento pode ser feito no mesmo dia se houver um horário disponível. O barbeiro pode bloquear intervalos de horários ou fechar um dia inteiro pelo painel.
 - A criação verifica conflitos dentro de uma transação SQLite; uma reserva concorrente recebe HTTP 409 se o horário já estiver ocupado.
+- A opção do painel é uma **pré-confirmação de presença**; ela não impede o cliente de cancelar até 2 horas antes. Quando cancelado, o status muda para `cancelado` e o horário volta a ficar disponível.
 - Datas e horários são tratados em `America/Sao_Paulo`; o instante é guardado em UTC e a agenda é apresentada no horário local.
 
 ## API principal
@@ -65,9 +65,9 @@ O servidor verifica a agenda a cada minuto e envia um lembrete quando o atendime
 | GET | `/admin/available-slots/:data/:service_id` | Horários livres no painel (token Bearer) |
 | GET | `/admin/appointments?de=AAAA-MM-DD&ate=AAAA-MM-DD` | Listar agenda (token Bearer) |
 | POST | `/admin/appointments` | Criar agendamento pelo painel |
-| POST | `/admin/appointments/:id/confirm` | Marcar presença |
+| POST | `/admin/appointments/:id/confirm` | Pré-confirmar presença |
 | POST | `/admin/appointments/:id/cancel` | Cancelar pelo painel |
-| POST | `/admin/block-slots` | Bloquear horário |
+| POST | `/admin/block-slots` | Bloquear um intervalo de horários |
 | DELETE | `/admin/block-slots/:id` | Remover bloqueio |
 | POST | `/admin/holidays` | Cadastrar feriado |
 | DELETE | `/admin/holidays/:id` | Remover feriado |
@@ -78,7 +78,7 @@ O servidor verifica a agenda a cada minuto e envia um lembrete quando o atendime
 npm test
 ```
 
-Os testes cobrem o arredondamento dos slots, formato de telefone e conversão do fuso horário.
+Os testes cobrem o arredondamento dos slots, formato de telefone, conversão de fuso horário, antecedência mínima, elegibilidade dos lembretes, ausência de bloqueio persistente do cliente e liberação do horário após cancelamento.
 
 ## Publicação
 
