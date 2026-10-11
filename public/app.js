@@ -474,7 +474,6 @@ function setupScrollAnimations() {
     '.booking-card',
     '.about-image',
     '.about-copy',
-    '.quote-band .quote-ornament',
     '.quote-band p',
     '.location-copy',
     '.map-card',
