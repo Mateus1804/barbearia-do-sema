@@ -37,3 +37,106 @@
 @keyframes fieldNudge{0%,100%{transform:translateX(0)}35%{transform:translateX(-2px)}70%{transform:translateX(2px)}}
 @keyframes heroDrift{0%{transform:scale(1)}100%{transform:scale(1.055)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* Camada de movimento refinada: revelação ao rolar, brilho e estados de interação */
+.motion-reveal {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0) scale(.99);
+  transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1);
+  transition-delay: var(--motion-delay, 0ms);
+  animation: none !important;
+  will-change: opacity, transform;
+}
+.motion-reveal.motion-in {
+  opacity: 1;
+  transform: translate3d(0,0,0) scale(1);
+}
+.service-card.motion-reveal { transform: translate3d(0, 30px, 0) scale(.975); }
+.service-card.motion-reveal.motion-in { transform: translate3d(0,0,0) scale(1); }
+.service-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -130%;
+  width: 75%;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(110deg, transparent 15%, rgba(214,169,107,.12) 48%, transparent 80%);
+  transform: skewX(-13deg);
+  transition: left .75s cubic-bezier(.2,.7,.2,1);
+}
+.service-card:hover::before { left: 150%; }
+.service-card > * { position: relative; z-index: 2; }
+.service-card .featured-ribbon { z-index: 3; }
+.button { overflow: hidden; isolation: isolate; }
+.button::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -125%;
+  width: 65%;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.32), transparent);
+  transform: skewX(-20deg);
+  transition: left .7s cubic-bezier(.2,.7,.2,1);
+  pointer-events: none;
+}
+.button:hover::before { left: 145%; }
+.button:focus-visible, a:focus-visible, .service-book:focus-visible, .nav-login:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+.service-book { position: relative; transition: color .25s, gap .25s; }
+.service-book:hover { color: var(--gold-dark); }
+.service-book span { transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.service-book:hover span { transform: translate(4px,-2px); }
+.booking-backdrop {
+  background-size: 140% 140%;
+  animation: ambientDrift 24s ease-in-out infinite alternate;
+}
+.booking-summary {
+  transition: transform .4s cubic-bezier(.2,.8,.2,1), box-shadow .4s, border-color .35s, background .35s;
+}
+.booking-summary.summary-selected {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(27,30,25,.07);
+}
+.booking-heading-mark { transition: transform .4s, color .4s; }
+.booking-card:hover .booking-heading-mark { transform: rotate(18deg) scale(1.07); }
+.brand-mark svg { transition: transform .6s cubic-bezier(.2,.8,.2,1); }
+.brand:hover .brand-mark svg { transform: rotate(-18deg); }
+.about-image-main { transition: transform 1.2s cubic-bezier(.2,.7,.2,1), filter .8s; }
+.about-image:hover .about-image-main { transform: scale(1.045); filter: saturate(1.08); }
+.quote-ornament { animation: quoteFloat 5s ease-in-out infinite; }
+.location-detail .location-icon { transition: transform .35s, background .35s, color .35s; }
+.location-detail:hover .location-icon { transform: translateY(-3px) rotate(-5deg); background: var(--ink); color: var(--gold); }
+.map-card .map-pin { transition: box-shadow .4s, scale .4s; }
+.map-card:hover .map-pin { scale: 1.08; box-shadow: 0 8px 24px rgba(42,45,34,.25); }
+.site-header { backdrop-filter: saturate(1.15); transition: background .35s, box-shadow .35s; }
+.main-nav > a:not(.button) { position: relative; }
+.main-nav > a:not(.button)::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -7px;
+  height: 1px;
+  background: var(--gold);
+  transition: right .3s cubic-bezier(.2,.8,.2,1);
+}
+.main-nav > a:not(.button):hover::after { right: 0; }
+.field:focus { box-shadow: 0 0 0 4px rgba(214,169,107,.13); }
+@keyframes ambientDrift {
+  0% { background-position: 0% 15%; transform: scale(1); }
+  100% { background-position: 100% 85%; transform: scale(1.025); }
+}
+@keyframes quoteFloat {
+  0%,100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-5px) rotate(-3deg); }
+}
+@media(prefers-reduced-motion: reduce) {
+  .motion-reveal, .motion-reveal.motion-in { opacity: 1 !important; transform: none !important; transition: none !important; will-change: auto; }
+  .booking-backdrop, .quote-ornament { animation: none !important; }
+  .button::before, .service-card::before { display: none !important; }
+}
