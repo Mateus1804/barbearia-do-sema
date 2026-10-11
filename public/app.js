@@ -131,7 +131,7 @@ async function loadAvailableSlots(date, serviceId, selectElement = $('#appointme
     selectElement.innerHTML = '<option value="">Selecione um horário</option>' + slots.map(t => `<option value="${t}">${t}</option>`).join('');
     if (currentSlot && slots.includes(currentSlot)) selectElement.value = currentSlot;
     selectElement.disabled = false;
-    if (hintElement) hintElement.textContent = `${slots.length} ${slots.length === 1 ? 'horário disponível' : 'horários disponíveis'}. Os agendamentos exigem pelo menos 2 horas de antecedência.`;
+    if (hintElement) hintElement.textContent = `${slots.length} ${slots.length === 1 ? 'horário disponível' : 'horários disponíveis'}. É possível agendar até 10 minutos antes, desde que o horário esteja disponível.`;
     return slots;
   } catch (error) {
     selectElement.innerHTML = '<option value="">Escolha outra data</option>';
