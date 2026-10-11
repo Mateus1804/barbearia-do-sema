@@ -77,21 +77,26 @@ async function loadServices() {
   const select = $('#serviceSelect');
   select.innerHTML = '<option value="">Selecione um serviço</option>' + services.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`).join('');
   $('#adminBookingService').innerHTML = '<option value="">Selecione um serviço</option>' + services.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`).join('');
+  const timeLabel = mins => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
   $('#blockTime').innerHTML = Array.from({ length: 21 }, (_, i) => {
-    const mins = 9 * 60 + i * 30;
-    return `<option value="${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}">${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}</option>`;
+    const time = timeLabel(9 * 60 + i * 30);
+    return `<option value="${time}">${time}</option>`;
+  }).join('');
+  $('#blockEndTime').innerHTML = '<option value="">Selecione o fim</option>' + Array.from({ length: 21 }, (_, i) => {
+    const time = timeLabel(9 * 60 + 30 + i * 30);
+    return `<option value="${time}">${time}</option>`;
   }).join('');
 }
 function setupDateLimits() {
-  const tomorrow = addDays(localDateString(), 1);
-  const maxDate = addDays(localDateString(), 30);
+  const today = localDateString();
+  const maxDate = addDays(today, 30);
   ['appointmentDate', 'adminFrom', 'adminTo', 'blockDate', 'holidayDate', 'adminBookingDate'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
-    el.min = id === 'appointmentDate' ? tomorrow : localDateString();
+    el.min = today;
     el.max = maxDate;
   });
-  $('#appointmentDate').value = tomorrow;
+  $('#appointmentDate').value = today;
   $('#adminFrom').value = localDateString();
   $('#adminTo').value = addDays(localDateString(), 6);
   $('#blockDate').value = localDateString();
@@ -170,7 +175,7 @@ async function submitBooking(event) {
 }
 
 function statusText(status) {
-  if (status === 'presente') return ['Presença confirmada', 'tag-green'];
+  if (status === 'presente') return ['Presença pré-confirmada', 'tag-green'];
   if (status === 'cancelado') return ['Cancelado', 'tag-red'];
   return ['Agendado', ''];
 }
@@ -212,7 +217,7 @@ async function startEditAppointment(id) {
   if (!appointment || !slot) return;
   if (!slot.classList.contains('hidden')) { slot.classList.add('hidden'); slot.innerHTML = ''; return; }
   const servicesOptions = state.services.map(s => `<option value="${s.id}" ${Number(s.id) === Number(appointment.servico_id) ? 'selected' : ''}>${escapeHtml(s.nome)} — ${money(s.preco)}</option>`).join('');
-  slot.innerHTML = `<form class="edit-booking-form" data-edit-form="${id}" style="margin-top:13px;padding:14px;background:#f5f3ed;border:1px solid #e5e2d8"><label class="field-label">Serviço</label><select class="field edit-service" required>${servicesOptions}</select><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><div><label class="field-label">Data</label><input class="field edit-date" type="date" min="${addDays(localDateString(), 1)}" max="${addDays(localDateString(), 30)}" value="${appointment.data}" required></div><div><label class="field-label">Horário</label><select class="field edit-time" required><option value="">Selecione</option></select></div></div><p class="edit-hint" style="font-size:9px;color:#87887d;margin:8px 0 12px">Escolha uma nova data e um horário livre.</p><div style="display:flex;gap:8px"><button type="submit" class="mini-button">Salvar alteração</button><button type="button" class="mini-button" data-close-edit="${id}">Voltar</button></div></form>`;
+  slot.innerHTML = `<form class="edit-booking-form" data-edit-form="${id}" style="margin-top:13px;padding:14px;background:#f5f3ed;border:1px solid #e5e2d8"><label class="field-label">Serviço</label><select class="field edit-service" required>${servicesOptions}</select><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px"><div><label class="field-label">Data</label><input class="field edit-date" type="date" min="${localDateString()}" max="${addDays(localDateString(), 30)}" value="${appointment.data}" required></div><div><label class="field-label">Horário</label><select class="field edit-time" required><option value="">Selecione</option></select></div></div><p class="edit-hint" style="font-size:9px;color:#87887d;margin:8px 0 12px">Escolha uma nova data e um horário livre.</p><div style="display:flex;gap:8px"><button type="submit" class="mini-button">Salvar alteração</button><button type="button" class="mini-button" data-close-edit="${id}">Voltar</button></div></form>`;
   slot.classList.remove('hidden');
   const form = slot.querySelector('form');
   const serviceSelect = $('.edit-service', form); const dateInput = $('.edit-date', form); const timeSelect = $('.edit-time', form); const hint = $('.edit-hint', form);
@@ -274,7 +279,7 @@ async function loginAdmin(event) {
   } catch (error) { showToast(error.message, 'error'); }
   finally { setBusy(button, false); }
 }
-function adminStatus(status) { if (status === 'presente') return ['Presença confirmada', 'present']; if (status === 'cancelado') return ['Cancelado', 'cancelled']; return ['Agendado', '']; }
+function adminStatus(status) { if (status === 'presente') return ['Pré-confirmada', 'present']; if (status === 'cancelado') return ['Cancelado', 'cancelled']; return ['Agendado', '']; }
 async function loadAdminAppointments() {
   if (!state.adminToken) return;
   const from = $('#adminFrom').value || localDateString();
@@ -288,10 +293,10 @@ async function loadAdminAppointments() {
     const scheduled = appointments.filter(a => a.status === 'agendado').length;
     const attended = appointments.filter(a => a.status === 'presente').length;
     const canceled = appointments.filter(a => a.status === 'cancelado').length;
-    $('#adminMetrics').innerHTML = `<div class="metric-card"><small>AGENDADOS</small><strong>${scheduled}</strong></div><div class="metric-card"><small>PRESENÇAS</small><strong>${attended}</strong></div><div class="metric-card"><small>CANCELADOS</small><strong>${canceled}</strong></div>`;
+    $('#adminMetrics').innerHTML = `<div class="metric-card"><small>AGENDADOS</small><strong>${scheduled}</strong></div><div class="metric-card"><small>PRÉ-CONFIRMADOS</small><strong>${attended}</strong></div><div class="metric-card"><small>CANCELADOS</small><strong>${canceled}</strong></div>`;
     root.innerHTML = appointments.length ? appointments.map(a => {
       const [status, cls] = adminStatus(a.status);
-      return `<article class="admin-appointment" data-admin-appointment="${a.id}"><div class="admin-time">${escapeHtml(a.hora)}<div style="font:9px var(--sans);color:#85877b;margin-top:4px">${escapeHtml(formatDate(a.data, false))}</div></div><div class="admin-appointment-info"><strong>${escapeHtml(a.nome)} · ${escapeHtml(a.servico)}</strong><p>${escapeHtml(a.telefone)} · ${money(a.preco)}${a.email ? `<br>${escapeHtml(a.email)}` : ''}</p><span class="admin-status ${cls}">${status}</span>${a.motivo_cancelamento ? `<p>Motivo: ${escapeHtml(a.motivo_cancelamento)}</p>` : ''}</div><div class="appointment-actions">${a.status === 'agendado' ? `<button class="mini-button" data-admin-confirm="${a.id}">Confirmar presença</button><button class="mini-button danger" data-admin-cancel="${a.id}">Cancelar</button>` : ''}</div></article>`;
+      return `<article class="admin-appointment" data-admin-appointment="${a.id}"><div class="admin-time">${escapeHtml(a.hora)}<div style="font:9px var(--sans);color:#85877b;margin-top:4px">${escapeHtml(formatDate(a.data, false))}</div></div><div class="admin-appointment-info"><strong>${escapeHtml(a.nome)} · ${escapeHtml(a.servico)}</strong><p>${escapeHtml(a.telefone)} · ${money(a.preco)}${a.email ? `<br>${escapeHtml(a.email)}` : ''}</p><span class="admin-status ${cls}">${status}</span>${a.motivo_cancelamento ? `<p>Motivo: ${escapeHtml(a.motivo_cancelamento)}</p>` : ''}</div><div class="appointment-actions">${a.status === 'agendado' ? `<button class="mini-button" data-admin-confirm="${a.id}">Pré-confirmar presença</button>` : ''}${a.status !== 'cancelado' ? `<button class="mini-button danger" data-admin-cancel="${a.id}">Cancelar</button>` : ''}</div></article>`;
     }).join('') : '<div class="empty-state">Nenhum agendamento encontrado neste período.</div>';
     renderAdminLists(data.bloqueios || [], data.feriados || []);
     await loadAdminBookingSlots();
@@ -358,7 +363,7 @@ async function submitAdminBooking(event) {
 
 function renderAdminLists(blocks, holidays) {
   $('#adminBlocks').innerHTML = blocks.length ? blocks.map(b => `<div class="admin-list-item"><span>${escapeHtml(formatDate(b.data))} · ${escapeHtml(b.hora)}<br>${escapeHtml(b.motivo)}</span><button data-remove-block="${b.id}" title="Remover bloqueio">×</button></div>`).join('') : '<div class="empty-state">Nenhum bloqueio no período.</div>';
-  $('#adminHolidays').innerHTML = holidays.length ? holidays.map(h => `<div class="admin-list-item"><span>${escapeHtml(formatDate(h.data))}<br>${escapeHtml(h.motivo)}</span><button data-remove-holiday="${h.id}" title="Remover feriado">×</button></div>`).join('') : '<div class="empty-state">Nenhum feriado no período.</div>';
+  $('#adminHolidays').innerHTML = holidays.length ? holidays.map(h => `<div class="admin-list-item"><span>${escapeHtml(formatDate(h.data))}<br>${escapeHtml(h.motivo)}</span><button data-remove-holiday="${h.id}" title="Remover feriado">×</button></div>`).join('') : '<div class="empty-state">Nenhum dia fechado no período.</div>';
 }
 async function adminAction(url, body, message) {
   try {
@@ -371,7 +376,7 @@ async function submitBlock(event) {
   event.preventDefault();
   const button = event.currentTarget.querySelector('[type="submit"]'); setBusy(button, true, 'Salvando...');
   try {
-    const data = await api('/admin/block-slots', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ data: $('#blockDate').value, hora: $('#blockTime').value, motivo: $('#blockReason').value }) });
+    const data = await api('/admin/block-slots', { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ data: $('#blockDate').value, hora: $('#blockTime').value, hora_fim: $('#blockEndTime').value, motivo: $('#blockReason').value }) });
     showToast(data.message); $('#blockReason').value = ''; await loadAdminAppointments();
   } catch (error) { showToast(error.message, 'error'); }
   finally { setBusy(button, false); }
@@ -443,7 +448,7 @@ function bindEvents() {
   $('#newBooking').addEventListener('click', () => {
     $('#bookingSuccess').classList.add('hidden'); $('#bookingForm').classList.remove('hidden');
     $('#bookingForm').reset(); updateBookingSummary();
-    $('#appointmentDate').value = addDays(localDateString(), 1);
+    $('#appointmentDate').value = localDateString();
     $('#appointmentTime').innerHTML = '<option value="">Escolha serviço e data</option>';
     $('#bookingForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
@@ -465,7 +470,7 @@ function bindEvents() {
     }
   });
   $('#adminBlocks').addEventListener('click', e => { const btn = e.target.closest('[data-remove-block]'); if (btn) removeAdminItem(`/admin/block-slots/${btn.dataset.removeBlock}`, 'Remover este bloqueio de horário?'); });
-  $('#adminHolidays').addEventListener('click', e => { const btn = e.target.closest('[data-remove-holiday]'); if (btn) removeAdminItem(`/admin/holidays/${btn.dataset.removeHoliday}`, 'Remover esta data de feriado?'); });
+  $('#adminHolidays').addEventListener('click', e => { const btn = e.target.closest('[data-remove-holiday]'); if (btn) removeAdminItem(`/admin/holidays/${btn.dataset.removeHoliday}`, 'Reabrir esta data?'); });
   $$('.service-book').forEach(btn => btn.addEventListener('click', () => {
     $('#serviceSelect').value = btn.dataset.service;
     updateBookingSummary();
