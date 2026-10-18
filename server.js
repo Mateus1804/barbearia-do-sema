@@ -294,11 +294,30 @@ function requireAdmin(req, res, next) {
   } catch { res.status(401).json({ error: 'Sessão expirada. Entre novamente.' }); }
 }
 function validCustomerAuth(phoneInput, emailInput) {
-  const phone = normalizePhone(phoneInput);
-  const email = normalizeEmail(emailInput);
-  if (!validPhone(phone) || !validEmail(email)) return { ok: false, phone };
-  const ok = !!db.prepare('SELECT id FROM clientes WHERE cliente_telefone=? AND cliente_email=? COLLATE NOCASE').get(phone, email);
-  return ok ? { ok: true, phone, email } : { ok: false, phone };
+  const hasPhone = String(phoneInput ?? '').trim() !== '';
+  const hasEmail = String(emailInput ?? '').trim() !== '';
+  const phone = hasPhone ? normalizePhone(phoneInput) : '';
+  const email = hasEmail ? normalizeEmail(emailInput) : '';
+  if ((!hasPhone && !hasEmail) || (hasPhone && !validPhone(phone)) || (hasEmail && !validEmail(email))) {
+    return { ok: false, phone, email };
+  }
+  let customer;
+  if (hasPhone && hasEmail) {
+    customer = db.prepare('SELECT id FROM clientes WHERE cliente_telefone=? AND cliente_email=? COLLATE NOCASE').get(phone, email);
+  } else if (hasPhone) {
+    customer = db.prepare('SELECT id FROM clientes WHERE cliente_telefone=?').get(phone);
+  } else {
+    customer = db.prepare('SELECT id FROM clientes WHERE cliente_email=? COLLATE NOCASE').get(email);
+  }
+  return customer ? { ok: true, phone, email } : { ok: false, phone, email };
+}
+function customerOwnsAppointment(appointment, auth) {
+  if (auth.phone && auth.email) {
+    return appointment.cliente_telefone === auth.phone && normalizeEmail(appointment.cliente_email) === auth.email;
+  }
+  if (auth.phone) return appointment.cliente_telefone === auth.phone;
+  if (auth.email) return normalizeEmail(appointment.cliente_email) === auth.email;
+  return false;
 }
 function catchRoute(fn) { return (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next); }
 
@@ -355,8 +374,15 @@ app.post('/api/appointments', (req, res, next) => {
 app.post('/api/authenticate', (req, res, next) => {
   try {
     const auth = validCustomerAuth(req.body.telefone, req.body.email);
-    if (!auth.ok) throw new HttpError(401, 'Telefone e e-mail não conferem. Confira os dados e tente novamente.');
-    const rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.cliente_telefone=? AND lower(a.cliente_email)=? ORDER BY a.data_agendamento DESC,a.hora_agendamento DESC`).all(auth.phone, auth.email);
+    if (!auth.ok) throw new HttpError(401, 'Informe um telefone ou e-mail cadastrado e confira os dados.');
+    let rows;
+    if (auth.phone && auth.email) {
+      rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.cliente_telefone=? AND lower(a.cliente_email)=? ORDER BY a.data_agendamento DESC,a.hora_agendamento DESC`).all(auth.phone, auth.email);
+    } else if (auth.phone) {
+      rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.cliente_telefone=? ORDER BY a.data_agendamento DESC,a.hora_agendamento DESC`).all(auth.phone);
+    } else {
+      rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE lower(a.cliente_email)=? ORDER BY a.data_agendamento DESC,a.hora_agendamento DESC`).all(auth.email);
+    }
     res.json({ agendamentos: rows.map(publicAppointment) });
   } catch (e) { next(e); }
 });
@@ -366,7 +392,7 @@ app.put('/api/appointments/:id', (req, res, next) => {
     const auth = validCustomerAuth(req.body.telefone, req.body.email);
     if (!auth.ok) throw new HttpError(401, 'Telefone e e-mail não conferem.');
     const old = getAppointment(req.params.id);
-    if (!old || old.cliente_telefone !== auth.phone || normalizeEmail(old.cliente_email) !== auth.email) throw new HttpError(404, 'Agendamento não encontrado.');
+    if (!old || !customerOwnsAppointment(old, auth)) throw new HttpError(404, 'Agendamento não encontrado.');
     if (old.status === 'cancelado') throw new HttpError(400, 'Este agendamento já foi cancelado.');
     if (startUtc(old.data_agendamento, old.hora_agendamento).getTime() - Date.now() < 2 * 60 * 60_000) throw new HttpError(400, 'Não é possível editar faltando menos de 2 horas para o horário marcado.');
     const service = getService(req.body.servico_id);
@@ -387,7 +413,7 @@ app.delete('/api/appointments/:id', (req, res, next) => {
     const auth = validCustomerAuth(req.body.telefone, req.body.email);
     if (!auth.ok) throw new HttpError(401, 'Telefone e e-mail não conferem.');
     const a = getAppointment(req.params.id);
-    if (!a || a.cliente_telefone !== auth.phone || normalizeEmail(a.cliente_email) !== auth.email) throw new HttpError(404, 'Agendamento não encontrado.');
+    if (!a || !customerOwnsAppointment(a, auth)) throw new HttpError(404, 'Agendamento não encontrado.');
     if (a.status === 'cancelado') throw new HttpError(400, 'Este agendamento já foi cancelado.');
     if (startUtc(a.data_agendamento, a.hora_agendamento).getTime() - Date.now() < 2 * 60 * 60_000) throw new HttpError(400, 'Não é possível cancelar faltando menos de 2 horas para o horário marcado.');
     db.prepare(`UPDATE agendamentos SET status='cancelado',motivo_cancelamento=?,atualizado_em=? WHERE id=?`).run('Cancelado pelo cliente', new Date().toISOString(), a.id);
