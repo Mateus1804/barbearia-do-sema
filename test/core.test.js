@@ -78,6 +78,10 @@ test('o cliente não fica bloqueado após várias combinações erradas de telef
     .run('Cliente de teste', '31988887777', 'correto@example.com', now, now);
   for (let i = 0; i < 5; i++) assert.equal(validCustomerAuth('31988887777', 'incorreto@example.com').ok, false);
   assert.equal(validCustomerAuth('31988887777', 'correto@example.com').ok, true);
+  assert.equal(validCustomerAuth('31988887777', '').ok, true, 'consulta usando somente telefone');
+  assert.equal(validCustomerAuth('', 'correto@example.com').ok, true, 'consulta usando somente e-mail');
+  assert.equal(validCustomerAuth('', '').ok, false, 'não permite consulta sem nenhum dado');
+  assert.equal(validCustomerAuth('31988887777', 'outro@example.com').ok, false, 'quando os dois dados são informados, ambos devem corresponder');
   assert.equal(db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='login_attempts'").get(), undefined);
 });
 
