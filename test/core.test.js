@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';
 process.env.JWT_SECRET = 'test-only-jwt-secret-with-at-least-32-characters';
-const { durationSlots, validBrazilianPhone, localToUtc, utcToLocal, validEmail, validCustomerAuth, hasMinimumBookingNotice, shouldSendReminder, hasOverlap, db } = require('../server');
+const { durationSlots, validPhone, localToUtc, utcToLocal, validEmail, validCustomerAuth, hasMinimumBookingNotice, shouldSendReminder, hasOverlap, db } = require('../server');
 
 test('duração real é convertida em slots de 30 minutos com arredondamento para cima', () => {
   assert.equal(durationSlots(15), 1);
@@ -13,12 +13,17 @@ test('duração real é convertida em slots de 30 minutos com arredondamento par
   assert.equal(durationSlots(60), 2);
 });
 
-test('valida telefones brasileiros de 10 ou 11 dígitos e preserva o DDD 55', () => {
-  assert.equal(validBrazilianPhone('31988887777'), true);
-  assert.equal(validBrazilianPhone('3133334444'), true);
-  assert.equal(validBrazilianPhone('55988887777'), true);
-  assert.equal(validBrazilianPhone('1198888777'), false);
-  assert.equal(validBrazilianPhone('abc'), false);
+test('aceita fixo, celular, código 55 e número internacional; recusa lixo e DDD inexistente', () => {
+  assert.equal(validPhone('31999998888'), true, 'celular');
+  assert.equal(validPhone('(31) 99999-8888'), true, 'celular formatado');
+  assert.equal(validPhone('5531999998888'), true, 'celular com 55');
+  assert.equal(validPhone('3133334444'), true, 'fixo');
+  assert.equal(validPhone('+14155550123'), true, 'internacional');
+  assert.equal(validPhone('+55 31 99999-8888'), true, 'brasil com +55');
+  assert.equal(validPhone('12345'), false, 'curto demais');
+  assert.equal(validPhone('+123'), false, 'internacional curto');
+  assert.equal(validPhone('30999998888'), false, 'DDD 30 não existe');
+  assert.equal(validPhone('abc'), false);
 });
 
 test('converte o horário de Brasília para UTC e vice-versa', () => {

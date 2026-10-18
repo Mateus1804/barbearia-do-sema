@@ -68,7 +68,23 @@ function closeModal(id) {
   if (!$('.modal-backdrop:not(.hidden)')) document.body.style.overflow = '';
 }
 function phoneDigits(value) { let n = String(value || '').replace(/\D/g, ''); if ((n.length === 12 || n.length === 13) && n.startsWith('55')) n = n.slice(2); return n; }
-function normalizeCustomerPhone(value) { return phoneDigits(value); }
+function normalizeCustomerPhone(value) { return BookingRules.canonicalPhone(value); }
+// Máscara (31) 99999-8888 enquanto digita; números internacionais (com +) ficam como o cliente digitou.
+function maskBrazilianPhone(input) {
+  if (input.value.trim().startsWith('+')) return;
+  const d = phoneDigits(input.value).slice(0, 11);
+  if (d.length <= 2) input.value = d.length ? `(${d}` : '';
+  else if (d.length <= 6) input.value = `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  else if (d.length <= 10) input.value = `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  else input.value = `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+// Dia sugerido ao abrir o formulário: o próximo dia em que a barbearia abre (nunca domingo).
+function firstBookableDate(from = localDateString()) {
+  let date = addDays(from, 1);
+  const weekday = d => new Date(`${d}T12:00:00Z`).getUTCDay();
+  while (weekday(date) === 0) date = addDays(date, 1);
+  return date;
+}
 function getService(id) { return state.services.find(s => Number(s.id) === Number(id)); }
 
 async function loadServices() {
@@ -96,7 +112,8 @@ function setupDateLimits() {
     el.min = today;
     el.max = maxDate;
   });
-  $('#appointmentDate').value = today;
+  // Hoje continua selecionável (o servidor aceita até 10 min de antecedência), mas o formulário abre no próximo dia útil.
+  $('#appointmentDate').value = firstBookableDate(today);
   $('#adminFrom').value = localDateString();
   $('#adminTo').value = addDays(localDateString(), 6);
   $('#blockDate').value = localDateString();
@@ -105,46 +122,56 @@ function setupDateLimits() {
   $('#blockDate').max = '';
   $('#holidayDate').max = '';
 }
+const BOOKING_FIELD_IDS = ['clientName', 'clientPhone', 'clientEmail', 'serviceSelect', 'appointmentDate', 'appointmentTime'];
+const PHONE_HINT = 'Fixo ou celular com DDD, ou número internacional começando com +.';
+function bookingValues() {
+  return {
+    nome: $('#clientName').value,
+    telefone: $('#clientPhone').value,
+    email: $('#clientEmail').value,
+    servico: $('#serviceSelect').value,
+    data: $('#appointmentDate').value,
+    hora: $('#appointmentTime').value
+  };
+}
+// Única função que decide o que falta: pinta os campos, o informativo do telefone e o painel de pendências.
 function updateBookingStep() {
-  const form = $('#bookingForm');
-  if (!form) return;
-  const fields = [
-    ['#clientName', value => !!value.trim()],
-    ['#clientPhone', value => !!value.trim()],
-    ['#clientEmail', value => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())],
-    ['#serviceSelect', value => !!value],
-    ['#appointmentDate', value => !!value],
-    ['#appointmentTime', value => !!value]
-  ];
-  fields.forEach(([selector, valid]) => {
-    const input = $(selector);
+  if (!$('#bookingForm')) return;
+  const missing = BookingRules.missingBookingFields(bookingValues());
+  const missingById = new Map(missing.map(item => [item.id, item]));
+
+  BOOKING_FIELD_IDS.forEach(id => {
+    const input = document.getElementById(id);
     const group = input.closest('.field-group') || input.closest('.select-wrap') || input;
-    const isValid = valid(input.value);
-    const showError = input.dataset.touched === 'true' && !isValid;
-    input.classList.toggle('field-invalid', showError);
-    input.setAttribute('aria-invalid', showError ? 'true' : 'false');
-    if (showError) group.classList.add('has-field-error');
-    else group.classList.remove('has-field-error');
+    const touched = input.dataset.touched === 'true';
+    const invalid = touched && missingById.has(id);
+    input.classList.toggle('field-invalid', invalid);
+    input.classList.toggle('field-valid', touched && !missingById.has(id));
+    input.setAttribute('aria-invalid', invalid ? 'true' : 'false');
+    group.classList.toggle('has-field-error', invalid);
   });
 
   const phoneHint = $('#phoneHint');
   if (phoneHint) {
-    phoneHint.textContent = 'Informe um telefone com DDD para contato e consulta dos seus agendamentos.';
-    phoneHint.classList.remove('feedback-success', 'feedback-error');
+    const phoneError = $('#clientPhone').classList.contains('field-invalid');
+    phoneHint.textContent = phoneError ? missingById.get('clientPhone').message : PHONE_HINT;
+    phoneHint.classList.toggle('feedback-error', phoneError);
   }
 
-  const progress = $('#bookingProgressCopy');
-  if (progress) {
-    const labels = [];
-    if (!$('#clientName').value.trim()) labels.push('nome');
-    if (!$('#clientPhone').value.trim()) labels.push('telefone');
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test($('#clientEmail').value.trim())) labels.push('e-mail');
-    if (!$('#serviceSelect').value) labels.push('serviço');
-    if (!$('#appointmentDate').value) labels.push('data');
-    if (!$('#appointmentTime').value) labels.push('horário');
-    progress.textContent = labels.length ? 'Falta preencher: ' + labels.join(', ') + '.' : 'Tudo certo! Confira os dados e confirme seu agendamento.';
-    progress.classList.toggle('progress-complete', labels.length === 0);
+  const panel = $('#bookingRequirements');
+  if (panel) {
+    const list = $('#requirementsList');
+    panel.classList.toggle('is-blocking', missing.length > 0);
+    panel.classList.toggle('is-complete', missing.length === 0);
+    // Fica vermelho só depois que algum campo foi marcado como inválido (não no primeiro olhar).
+    panel.classList.toggle('has-errors', BOOKING_FIELD_IDS.some(id => document.getElementById(id).classList.contains('field-invalid')));
+    $('#requirementsTitle').textContent = missing.length ? 'Falta preencher para agendar' : 'Tudo certo! Confira os dados e confirme seu agendamento.';
+    // Só redesenha quando algo mudou: trocar os botões no meio de um clique faria o clique se perder.
+    const html = missing.map(item => `<li><button type="button" class="requirement-item" data-focus-field="${item.id}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.message)}</span></button></li>`).join('');
+    if (list.dataset.rendered !== html) { list.innerHTML = html; list.dataset.rendered = html; }
+    list.classList.toggle('hidden', missing.length === 0);
   }
+  return missing;
 }
 function updateBookingSummary() {
   const service = getService($('#serviceSelect').value);
@@ -154,6 +181,9 @@ function updateBookingSummary() {
   updateBookingStep();
 }
 async function loadAvailableSlots(date, serviceId, selectElement = $('#appointmentTime'), hintElement = $('#availabilityHint'), { currentSlot = null } = {}) {
+  // Se o cliente trocar serviço/data enquanto uma consulta ainda está em andamento, só a mais recente pode preencher a lista.
+  const requestId = (selectElement.slotRequestId = (selectElement.slotRequestId || 0) + 1);
+  const isStale = () => selectElement.slotRequestId !== requestId;
   selectElement.disabled = true;
   selectElement.innerHTML = '<option value="">Buscando horários...</option>';
   if (!date || !serviceId) {
@@ -163,6 +193,7 @@ async function loadAvailableSlots(date, serviceId, selectElement = $('#appointme
   }
   try {
     const result = await api(`/api/available-slots/${encodeURIComponent(date)}/${encodeURIComponent(serviceId)}`);
+    if (isStale()) return [];
     const slots = result.slots || [];
     if (!slots.length) {
       selectElement.innerHTML = '<option value="">Nenhum horário disponível</option>';
@@ -176,6 +207,7 @@ async function loadAvailableSlots(date, serviceId, selectElement = $('#appointme
     if (hintElement) hintElement.textContent = `${slots.length} ${slots.length === 1 ? 'horário disponível' : 'horários disponíveis'}. É possível agendar até 10 minutos antes, desde que o horário esteja disponível.`;
     return slots;
   } catch (error) {
+    if (isStale()) return [];
     selectElement.innerHTML = '<option value="">Escolha outra data</option>';
     selectElement.disabled = true;
     if (hintElement) hintElement.textContent = error.message || 'Não foi possível consultar a agenda.';
@@ -193,17 +225,14 @@ async function submitBooking(event) {
     email: $('#clientEmail').value.trim().toLowerCase(),
     servico_id: Number($('#serviceSelect').value),
     data: $('#appointmentDate').value,
-    hora: $('#appointmentTime').value
+    hora: $('#appointmentTime').value,
+    whatsapp: $('#clientWhatsapp').checked
   };
-  const requiredFields = ['#clientName', '#clientPhone', '#clientEmail', '#serviceSelect', '#appointmentDate', '#appointmentTime'];
-  requiredFields.forEach(selector => { $(selector).dataset.touched = 'true'; });
-  updateBookingStep();
-  const firstInvalid = requiredFields.map(selector => $(selector)).find(input => {
-    if (input.id === 'clientEmail') return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value.trim());
-    return !input.value.trim();
-  });
-  if (firstInvalid) {
-    showToast('Preencha os campos obrigatórios destacados em vermelho.', 'error');
+  BOOKING_FIELD_IDS.forEach(id => { document.getElementById(id).dataset.touched = 'true'; });
+  const missing = updateBookingStep();
+  if (missing.length) {
+    showToast(`Ainda falta preencher: ${missing.map(item => item.label).join(', ')}.`, 'error');
+    const firstInvalid = document.getElementById(missing[0].id);
     firstInvalid.focus();
     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
@@ -251,7 +280,7 @@ async function authenticateCustomer(event) {
   const button = event.currentTarget.querySelector('button[type="submit"]');
   const phone = normalizeCustomerPhone($('#lookupPhone').value);
   const email = $('#lookupEmail').value.trim().toLowerCase();
-  if (!/^\d{10,11}$/.test(phone) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Informe um telefone com DDD e um e-mail válido.', 'error'); return; }
+  if (!BookingRules.isValidPhone(phone) || !BookingRules.isValidEmail(email)) { showToast('Informe um telefone com DDD e um e-mail válido.', 'error'); return; }
   setBusy(button, true, 'Consultando...');
   try {
     const auth = { telefone: phone, email };
@@ -524,20 +553,29 @@ function bindEvents() {
   $$('.modal-backdrop').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal-backdrop:not(.hidden)').forEach(m => closeModal(m.id)); });
   $('#serviceSelect').addEventListener('change', async () => { updateBookingSummary(); await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); });
-  $('#appointmentDate').addEventListener('change', () => { loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); updateBookingStep(); });
-  $('#appointmentTime').addEventListener('change', updateBookingStep);
-  $('#clientName').addEventListener('input', updateBookingStep);
-  $('#clientPhone').addEventListener('change', updateBookingStep);
-  $('#clientEmail').addEventListener('change', updateBookingStep);
+  $('#appointmentDate').addEventListener('change', () => loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value));
   $('#bookingForm').addEventListener('submit', submitBooking);
-  ['#clientName', '#clientPhone', '#clientEmail', '#serviceSelect', '#appointmentDate', '#appointmentTime'].forEach(selector => {
-    const input = $(selector);
+  BOOKING_FIELD_IDS.forEach(id => {
+    const input = document.getElementById(id);
     input.addEventListener('blur', () => { input.dataset.touched = 'true'; updateBookingStep(); });
     input.addEventListener('input', updateBookingStep);
     input.addEventListener('change', updateBookingStep);
   });
-  $('#clientPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; updateBookingStep(); });
-  $('#lookupPhone').addEventListener('input', e => { const digits = phoneDigits(e.target.value).slice(0, 11); if (digits.length <= 2) e.target.value = digits.length ? `(${digits}` : ''; else if (digits.length <= 7) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2)}`; else if (digits.length <= 10) e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,6)}-${digits.slice(6)}`; else e.target.value = `(${digits.slice(0,2)}) ${digits.slice(2,7)}-${digits.slice(7)}`; });
+  $('#clientPhone').addEventListener('input', e => { maskBrazilianPhone(e.target); updateBookingStep(); });
+  $('#lookupPhone').addEventListener('input', e => maskBrazilianPhone(e.target));
+  $('#adminClientPhone').addEventListener('input', e => maskBrazilianPhone(e.target));
+  // Clicar numa pendência leva direto ao campo que falta.
+  const goToRequirement = e => {
+    const item = e.target.closest('[data-focus-field]');
+    if (!item) return;
+    // No mousedown evitamos o blur do campo atual (que redesenharia a lista antes de o clique terminar).
+    if (e.type === 'mousedown') e.preventDefault();
+    const field = document.getElementById(item.dataset.focusField);
+    field.focus({ preventScroll: true });
+    field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+  $('#requirementsList').addEventListener('mousedown', goToRequirement);
+  $('#requirementsList').addEventListener('click', goToRequirement);
   $('#customerLoginForm').addEventListener('submit', authenticateCustomer);
   $('#customerAppointments').addEventListener('click', async e => {
     const edit = e.target.closest('[data-edit-appointment]');
@@ -550,9 +588,12 @@ function bindEvents() {
   $('#customerAppointments').addEventListener('submit', saveEditAppointment);
   $('#newBooking').addEventListener('click', () => {
     $('#bookingSuccess').classList.add('hidden'); $('#bookingForm').classList.remove('hidden');
-    $('#bookingForm').reset(); updateBookingSummary();
-    $('#appointmentDate').value = localDateString();
+    $('#bookingForm').reset();
+    BOOKING_FIELD_IDS.forEach(id => { delete document.getElementById(id).dataset.touched; });
+    $('#appointmentDate').value = firstBookableDate();
     $('#appointmentTime').innerHTML = '<option value="">Escolha serviço e data</option>';
+    $('#appointmentTime').disabled = true;
+    updateBookingSummary();
     $('#bookingForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
   $('#adminLoginForm').addEventListener('submit', loginAdmin);
@@ -585,6 +626,7 @@ function bindEvents() {
 async function init() {
   bindEvents();
   setupDateLimits();
+  updateBookingStep();
   try { await loadServices(); updateBookingSummary(); await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); }
   catch (error) { showToast('Não foi possível carregar os serviços. Atualize a página em instantes.', 'error'); }
   if (state.adminToken) {

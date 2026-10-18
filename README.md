@@ -78,7 +78,17 @@ O servidor verifica a agenda a cada minuto. O lembrete de 24 horas só é enviad
 npm test
 ```
 
-Os testes cobrem o arredondamento dos slots, formato de telefone, conversão de fuso horário, antecedência mínima, elegibilidade dos lembretes, ausência de bloqueio persistente do cliente e liberação do horário após cancelamento.
+São ~70 testes, todos com banco em memória (não tocam nos dados reais), e rodam em cerca de um minuto:
+
+| Arquivo | O que protege |
+|---|---|
+| `test/booking-rules.test.js` | Regra única de telefone (fixo, celular com DDD + 9 + 8 dígitos, internacional com `+`), e-mail e lista de pendências do formulário |
+| `test/core.test.js` | Slots de 30 min, fuso de Brasília, antecedência mínima de 10 min, lembretes de 24h/3h |
+| `test/api.test.js` e `test/appointments-lifecycle.test.js` | Fluxo completo pela API: agendar, consultar, remarcar, cancelar, regra das 2 horas, almoço, bloqueios, dias fechados, login e ações do administrador, validações de entrada |
+| `test/booking-form.browser.test.js` | Formulário no navegador: lista do que falta, campos em vermelho, máscara do telefone, dia padrão, envio e proteção contra respostas atrasadas |
+| `test/layout.browser.test.js` | Layout em desktop, tablet e celular: sem rolagem lateral, cards alinhados, mapa e títulos centralizados, animações que não deslocam elementos |
+
+Os testes de navegador usam o Chromium do Playwright. Na primeira vez, instale-o com `npx playwright install chromium`; se ele não estiver instalado, esses testes são pulados em vez de falhar. Para rodar um arquivo só: `node --test test/layout.browser.test.js`.
 
 ## Publicação
 

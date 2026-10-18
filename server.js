@@ -10,6 +10,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Database = require('better-sqlite3');
 const nodemailer = require('nodemailer');
+const BookingRules = require('./public/booking-rules.js');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -124,6 +125,7 @@ const existingColumns = appointmentColumns();
 if (!existingColumns.includes('lembrete_24h_enviado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_24h_enviado_em TEXT');
 if (!existingColumns.includes('lembrete_3h_enviado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_3h_enviado_em TEXT');
 if (!existingColumns.includes('programado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN programado_em TEXT');
+if (!existingColumns.includes('telefone_whatsapp')) db.exec('ALTER TABLE agendamentos ADD COLUMN telefone_whatsapp INTEGER NOT NULL DEFAULT 0');
 db.exec("UPDATE agendamentos SET programado_em = COALESCE(programado_em, atualizado_em, criado_em) WHERE programado_em IS NULL OR trim(programado_em) = ''");
 db.exec(`CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos(data_agendamento, hora_agendamento);
 CREATE INDEX IF NOT EXISTS idx_agendamentos_telefone ON agendamentos(cliente_telefone);
@@ -182,24 +184,13 @@ function utcToLocal(iso) {
   const p = localParts(new Date(iso));
   return { date: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}` };
 }
-function normalizePhone(input) {
-  let n = String(input || '').replace(/\D/g, '');
-  if ((n.length === 12 || n.length === 13) && n.startsWith('55')) n = n.slice(2);
-  return n;
-}
-function validBrazilianPhone(input) {
-  const n = normalizePhone(input);
-  return /^\d{10,11}$/.test(n) && /^[1-9]\d/.test(n) && (n.length !== 11 || n[2] === '9');
-}
-function formatPhone(input) {
-  const n = normalizePhone(input);
-  if (n.length === 11) return `(${n.slice(0,2)}) ${n.slice(2,7)}-${n.slice(7)}`;
-  if (n.length === 10) return `(${n.slice(0,2)}) ${n.slice(2,6)}-${n.slice(6)}`;
-  return n;
-}
+function normalizePhone(input) { return BookingRules.canonicalPhone(input); }
+// Regra única (DDD + 9 + 8 dígitos) compartilhada com o navegador em public/booking-rules.js.
+function validPhone(input) { return BookingRules.isValidPhone(input); }
+function formatPhone(input) { return BookingRules.formatPhone(input); }
 function cleanText(v, max = 120) { return String(v ?? '').trim().replace(/[<>]/g, '').slice(0, max); }
 function normalizeEmail(input) { return cleanText(input, 160).toLowerCase(); }
-function validEmail(input) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(input || '')); }
+function validEmail(input) { return BookingRules.isValidEmail(input); }
 function registerCustomer({ name, phone, email, now = new Date().toISOString() }) {
   db.prepare(`INSERT INTO clientes (cliente_nome,cliente_telefone,cliente_email,criado_em,atualizado_em) VALUES (?,?,?,?,?)
     ON CONFLICT(cliente_telefone,cliente_email) DO UPDATE SET cliente_nome=excluded.cliente_nome, atualizado_em=excluded.atualizado_em`).run(name, phone, email, now, now);
@@ -223,6 +214,7 @@ function publicAppointment(a) {
     duracao_minutos: a.duracao_minutos,
     status: a.status,
     motivo_cancelamento: a.motivo_cancelamento || null,
+    whatsapp: !!a.telefone_whatsapp,
     criado_em: a.criado_em
   };
 }
@@ -304,7 +296,7 @@ function requireAdmin(req, res, next) {
 function validCustomerAuth(phoneInput, emailInput) {
   const phone = normalizePhone(phoneInput);
   const email = normalizeEmail(emailInput);
-  if (!validBrazilianPhone(phone) || !validEmail(email)) return { ok: false, phone };
+  if (!validPhone(phone) || !validEmail(email)) return { ok: false, phone };
   const ok = !!db.prepare('SELECT id FROM clientes WHERE cliente_telefone=? AND cliente_email=? COLLATE NOCASE').get(phone, email);
   return ok ? { ok: true, phone, email } : { ok: false, phone };
 }
@@ -338,12 +330,13 @@ app.post('/api/appointments', (req, res, next) => {
   try {
     const name = cleanText(req.body.nome, 80);
     const phone = normalizePhone(req.body.telefone);
+    const whatsapp = req.body.whatsapp === true || req.body.whatsapp === "true" ? 1 : 0;
     const email = normalizeEmail(req.body.email);
     const service = getService(req.body.servico_id);
     const date = String(req.body.data || '');
     const time = String(req.body.hora || '');
     if (name.length < 2) throw new HttpError(400, 'Informe seu nome completo.');
-    if (!validBrazilianPhone(phone)) throw new HttpError(400, 'Informe um telefone brasileiro válido com DDD.');
+    if (!validPhone(phone)) throw new HttpError(400, 'Informe um fixo ou celular com DDD, ou um número internacional começando com +.');
     if (!validEmail(email)) throw new HttpError(400, 'Informe um e-mail válido para cadastrar seu contato e receber os lembretes.');
     validateBookable({ date, time, service });
     const now = new Date().toISOString();
@@ -351,11 +344,11 @@ app.post('/api/appointments', (req, res, next) => {
     const create = db.transaction(() => {
       if (hasOverlap(date, time, service.duracao_minutos)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
       registerCustomer({ name, phone, email, now });
-      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now);
+      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em,telefone_whatsapp) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now, whatsapp);
       id = Number(result.lastInsertRowid);
     });
     create();
-    res.status(201).json({ message: 'Agendamento realizado!', lembretes_email_ativos: SMTP_CONFIGURED, agendamento: { id, nome: name, telefone: formatPhone(phone), email, servico: service.nome, preco: service.preco_cents / 100, data: date, hora: time, status: 'agendado' } });
+    res.status(201).json({ message: 'Agendamento realizado!', lembretes_email_ativos: SMTP_CONFIGURED, agendamento: { id, nome: name, telefone: formatPhone(phone), whatsapp: !!whatsapp, email, servico: service.nome, preco: service.preco_cents / 100, data: date, hora: time, status: 'agendado' } });
   } catch (e) { next(e); }
 });
 
@@ -432,12 +425,13 @@ app.post('/admin/appointments', requireAdmin, (req, res, next) => {
   try {
     const name = cleanText(req.body.nome, 80);
     const phone = normalizePhone(req.body.telefone);
+    const whatsapp = req.body.whatsapp === true || req.body.whatsapp === "true" ? 1 : 0;
     const email = normalizeEmail(req.body.email);
     const service = getService(req.body.servico_id);
     const date = String(req.body.data || '');
     const time = String(req.body.hora || '');
     if (name.length < 2) throw new HttpError(400, 'Informe o nome do cliente.');
-    if (!validBrazilianPhone(phone)) throw new HttpError(400, 'Informe um telefone brasileiro válido com DDD.');
+    if (!validPhone(phone)) throw new HttpError(400, 'Informe um fixo ou celular com DDD, ou um número internacional começando com +.');
     if (!validEmail(email)) throw new HttpError(400, 'Informe um e-mail válido para que os lembretes possam ser enviados.');
     validateBookable({ date, time, service, isAdmin: true });
     const now = new Date().toISOString();
@@ -445,11 +439,11 @@ app.post('/admin/appointments', requireAdmin, (req, res, next) => {
     const create = db.transaction(() => {
       if (hasOverlap(date, time, service.duracao_minutos)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
       registerCustomer({ name, phone, email, now });
-      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now);
+      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em,telefone_whatsapp) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now, whatsapp);
       id = Number(result.lastInsertRowid);
     });
     create();
-    res.status(201).json({ message: 'Agendamento criado pelo painel.', lembretes_email_ativos: SMTP_CONFIGURED, agendamento: { id, nome: name, telefone: formatPhone(phone), email, servico: service.nome, preco: service.preco_cents / 100, data, hora: time, status: 'agendado' } });
+    res.status(201).json({ message: 'Agendamento criado pelo painel.', lembretes_email_ativos: SMTP_CONFIGURED, agendamento: { id, nome: name, telefone: formatPhone(phone), whatsapp: !!whatsapp, email, servico: service.nome, preco: service.preco_cents / 100, data: date, hora: time, status: 'agendado' } });
   } catch (e) { next(e); }
 });
 
@@ -607,4 +601,4 @@ if (require.main === module) {
     reminderTimer.unref();
   });
 }
-module.exports = { app, db, localToUtc, utcToLocal, durationSlots, validBrazilianPhone, hasOverlap, ensureDate, validEmail, validCustomerAuth, hasMinimumBookingNotice, shouldSendReminder, dispatchDueReminders };
+module.exports = { app, db, localToUtc, utcToLocal, durationSlots, validPhone, hasOverlap, ensureDate, validEmail, validCustomerAuth, hasMinimumBookingNotice, shouldSendReminder, dispatchDueReminders };
