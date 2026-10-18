@@ -263,7 +263,7 @@ function statusText(status) {
 function renderCustomerAppointments(appointments) {
   const root = $('#customerAppointments');
   if (!appointments.length) {
-    root.innerHTML = '<div class="empty-state">Não encontramos agendamentos para essa combinação de telefone e e-mail.</div>';
+    root.innerHTML = '<div class="empty-state">Não encontramos agendamentos para esse telefone ou e-mail.</div>';
     return;
   }
   root.innerHTML = appointments.map(a => {
@@ -278,9 +278,13 @@ function renderCustomerAppointments(appointments) {
 async function authenticateCustomer(event) {
   event.preventDefault();
   const button = event.currentTarget.querySelector('button[type="submit"]');
-  const phone = normalizeCustomerPhone($('#lookupPhone').value);
+  const phoneInput = $('#lookupPhone').value.trim();
   const email = $('#lookupEmail').value.trim().toLowerCase();
-  if (!BookingRules.isValidPhone(phone) || !BookingRules.isValidEmail(email)) { showToast('Informe um telefone com DDD e um e-mail válido.', 'error'); return; }
+  const phone = phoneInput ? normalizeCustomerPhone(phoneInput) : '';
+  if ((!phone && !email) || (phone && !BookingRules.isValidPhone(phone)) || (email && !BookingRules.isValidEmail(email))) {
+    showToast('Informe um telefone válido ou um e-mail válido. Você não precisa preencher os dois.', 'error');
+    return;
+  }
   setBusy(button, true, 'Consultando...');
   try {
     const auth = { telefone: phone, email };
