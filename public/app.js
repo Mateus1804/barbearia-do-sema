@@ -32,7 +32,14 @@ function escapeHtml(value) {
 }
 async function api(url, options = {}) {
   const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
-  const response = await fetch(url, { ...options, headers });
+  let response;
+  try {
+    response = await fetch(url, { ...options, headers });
+  } catch (error) {
+    // fetch só rejeita com TypeError quando a requisição nem chegou ao servidor (sem internet, DNS, servidor fora do ar).
+    if (error.name === 'TypeError') throw new Error('Verifique sua conexão de internet e tente novamente.');
+    throw error;
+  }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || 'Não foi possível concluir. Tente novamente.');
   return data;
@@ -226,7 +233,7 @@ async function submitBooking(event) {
     servico_id: Number($('#serviceSelect').value),
     data: $('#appointmentDate').value,
     hora: $('#appointmentTime').value,
-    whatsapp: $('#clientWhatsapp').checked
+    whatsapp: $('#clientWhatsapp')?.checked || false
   };
   BOOKING_FIELD_IDS.forEach(id => { document.getElementById(id).dataset.touched = 'true'; });
   const missing = updateBookingStep();
@@ -635,7 +642,8 @@ async function init() {
   catch (error) { showToast('Não foi possível carregar os serviços. Atualize a página em instantes.', 'error'); }
   if (state.adminToken) {
     // Token is session-scoped in the browser. The server remains the authority and will invalidate expired tokens.
-    setAdminView(false);
+    setAdminView(true);
+    loadAdminAppointments();
   }
 }
 
