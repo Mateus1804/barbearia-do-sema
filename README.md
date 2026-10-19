@@ -91,6 +91,14 @@ São ~75 testes, todos com banco em memória (não tocam nos dados reais), e rod
 
 Os testes de navegador usam o Chromium do Playwright. Na primeira vez, instale-o com `npx playwright install chromium`; se ele não estiver instalado, esses testes são pulados em vez de falhar. Para rodar um arquivo só: `node --test test/layout.browser.test.js`.
 
+## Qualidade de código
+
+```bash
+npm run lint
+```
+
+O ESLint (`eslint.config.js`) varre servidor, frontend e testes em busca de variáveis/funções sem uso, `var`, comparações com `==` e erros de sintaxe. Rode junto com `npm test` antes de cada commit.
+
 ## Publicação
 
 O Express serve tanto a interface quanto a API na mesma origem, então é possível publicar como um único serviço Node (por exemplo, Railway). Configure também as variáveis SMTP para os lembretes funcionarem em produção. Defina `NODE_ENV=production`, `ADMIN_PASSWORD`, `JWT_SECRET` e `DB_PATH`. Para persistir a agenda entre reinicializações, configure um volume persistente e aponte `DB_PATH` para ele, por exemplo `/data/barbearia.db`. Sem volume persistente, um disco efêmero pode apagar o banco ao reiniciar/reimplantar.

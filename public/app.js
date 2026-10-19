@@ -97,18 +97,16 @@ function getService(id) { return state.services.find(s => Number(s.id) === Numbe
 async function loadServices() {
   const services = await api('/api/services');
   state.services = services;
-  const select = $('#serviceSelect');
-  select.innerHTML = '<option value="">Selecione um serviço</option>' + services.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`).join('');
-  $('#adminBookingService').innerHTML = '<option value="">Selecione um serviço</option>' + services.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`).join('');
+  const serviceOptions = '<option value="">Selecione um serviço</option>' + services.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`).join('');
+  $('#serviceSelect').innerHTML = serviceOptions;
+  $('#adminBookingService').innerHTML = serviceOptions;
   const timeLabel = mins => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-  $('#blockTime').innerHTML = Array.from({ length: 21 }, (_, i) => {
-    const time = timeLabel(9 * 60 + i * 30);
+  const timeOptions = firstMinute => Array.from({ length: 21 }, (_, i) => {
+    const time = timeLabel(firstMinute + i * 30);
     return `<option value="${time}">${time}</option>`;
   }).join('');
-  $('#blockEndTime').innerHTML = '<option value="">Selecione o fim</option>' + Array.from({ length: 21 }, (_, i) => {
-    const time = timeLabel(9 * 60 + 30 + i * 30);
-    return `<option value="${time}">${time}</option>`;
-  }).join('');
+  $('#blockTime').innerHTML = timeOptions(9 * 60);
+  $('#blockEndTime').innerHTML = '<option value="">Selecione o fim</option>' + timeOptions(9 * 60 + 30);
 }
 function setupDateLimits() {
   const today = localDateString();
@@ -224,7 +222,6 @@ async function loadAvailableSlots(date, serviceId, selectElement = $('#appointme
 
 async function submitBooking(event) {
   event.preventDefault();
-  const form = event.currentTarget;
   const button = $('#submitBooking');
   const body = {
     nome: $('#clientName').value.trim(),
@@ -543,7 +540,7 @@ function setupScrollAnimations() {
   });
 }
 
-function bindEvents() {
+function bindPageChrome() {
   setupScrollAnimations();
   $('#year').textContent = new Date().getFullYear();
   $('#menuToggle').addEventListener('click', () => {
@@ -551,18 +548,12 @@ function bindEvents() {
     $('#menuToggle').setAttribute('aria-expanded', String(open));
   });
   $$('#mainNav a').forEach(a => a.addEventListener('click', () => { $('#mainNav').classList.remove('open'); $('#menuToggle').setAttribute('aria-expanded', 'false'); }));
-  $('#openMyAppointments').addEventListener('click', openCustomerModal);
-  $('#successMyAppointments').addEventListener('click', () => {
-    closeModal('customerModal');
-    $('#lookupPhone').value = $('#bookingSuccess').dataset.phone || '';
-    $('#lookupEmail').value = $('#bookingSuccess').dataset.email || '';
-    openCustomerModal();
-    $('#customerLoginForm').requestSubmit();
-  });
-  $('#openAdmin').addEventListener('click', openAdminModal);
   $$('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
   $$('.modal-backdrop').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal-backdrop:not(.hidden)').forEach(m => closeModal(m.id)); });
+}
+
+function bindBookingForm() {
   $('#serviceSelect').addEventListener('change', async () => { updateBookingSummary(); await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); });
   $('#appointmentDate').addEventListener('change', () => loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value));
   $('#bookingForm').addEventListener('submit', submitBooking);
@@ -573,8 +564,6 @@ function bindEvents() {
     input.addEventListener('change', updateBookingStep);
   });
   $('#clientPhone').addEventListener('input', e => { maskBrazilianPhone(e.target); updateBookingStep(); });
-  $('#lookupPhone').addEventListener('input', e => maskBrazilianPhone(e.target));
-  $('#adminClientPhone').addEventListener('input', e => maskBrazilianPhone(e.target));
   // Clicar numa pendência leva direto ao campo que falta.
   const goToRequirement = e => {
     const item = e.target.closest('[data-focus-field]');
@@ -587,16 +576,6 @@ function bindEvents() {
   };
   $('#requirementsList').addEventListener('mousedown', goToRequirement);
   $('#requirementsList').addEventListener('click', goToRequirement);
-  $('#customerLoginForm').addEventListener('submit', authenticateCustomer);
-  $('#customerAppointments').addEventListener('click', async e => {
-    const edit = e.target.closest('[data-edit-appointment]');
-    const cancel = e.target.closest('[data-cancel-appointment]');
-    const close = e.target.closest('[data-close-edit]');
-    if (edit) await startEditAppointment(edit.dataset.editAppointment);
-    if (cancel) await cancelCustomerAppointment(cancel.dataset.cancelAppointment);
-    if (close) { const slot = $(`#edit-slot-${close.dataset.closeEdit}`); slot.classList.add('hidden'); slot.innerHTML = ''; }
-  });
-  $('#customerAppointments').addEventListener('submit', saveEditAppointment);
   $('#newBooking').addEventListener('click', () => {
     $('#bookingSuccess').classList.add('hidden'); $('#bookingForm').classList.remove('hidden');
     $('#bookingForm').reset();
@@ -607,6 +586,39 @@ function bindEvents() {
     updateBookingSummary();
     $('#bookingForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
   });
+  $$('.service-book').forEach(btn => btn.addEventListener('click', () => {
+    $('#serviceSelect').value = btn.dataset.service;
+    updateBookingSummary();
+    loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value);
+    document.querySelector('#agendar').scrollIntoView({ behavior: 'smooth' });
+  }));
+}
+
+function bindCustomerArea() {
+  $('#openMyAppointments').addEventListener('click', openCustomerModal);
+  $('#successMyAppointments').addEventListener('click', () => {
+    closeModal('customerModal');
+    $('#lookupPhone').value = $('#bookingSuccess').dataset.phone || '';
+    $('#lookupEmail').value = $('#bookingSuccess').dataset.email || '';
+    openCustomerModal();
+    $('#customerLoginForm').requestSubmit();
+  });
+  $('#lookupPhone').addEventListener('input', e => maskBrazilianPhone(e.target));
+  $('#customerLoginForm').addEventListener('submit', authenticateCustomer);
+  $('#customerAppointments').addEventListener('click', async e => {
+    const edit = e.target.closest('[data-edit-appointment]');
+    const cancel = e.target.closest('[data-cancel-appointment]');
+    const close = e.target.closest('[data-close-edit]');
+    if (edit) await startEditAppointment(edit.dataset.editAppointment);
+    if (cancel) await cancelCustomerAppointment(cancel.dataset.cancelAppointment);
+    if (close) { const slot = $(`#edit-slot-${close.dataset.closeEdit}`); slot.classList.add('hidden'); slot.innerHTML = ''; }
+  });
+  $('#customerAppointments').addEventListener('submit', saveEditAppointment);
+}
+
+function bindAdminArea() {
+  $('#openAdmin').addEventListener('click', openAdminModal);
+  $('#adminClientPhone').addEventListener('input', e => maskBrazilianPhone(e.target));
   $('#adminLoginForm').addEventListener('submit', loginAdmin);
   $('#adminLogout').addEventListener('click', () => { state.adminToken = ''; sessionStorage.removeItem('sema_admin_token'); setAdminView(false); $('#adminPassword').value = ''; showToast('Você saiu do painel.'); });
   $('#loadAdminAppointments').addEventListener('click', loadAdminAppointments);
@@ -626,12 +638,13 @@ function bindEvents() {
   });
   $('#adminBlocks').addEventListener('click', e => { const btn = e.target.closest('[data-remove-block]'); if (btn) removeAdminItem(`/admin/block-slots/${btn.dataset.removeBlock}`, 'Remover este bloqueio de horário?'); });
   $('#adminHolidays').addEventListener('click', e => { const btn = e.target.closest('[data-remove-holiday]'); if (btn) removeAdminItem(`/admin/holidays/${btn.dataset.removeHoliday}`, 'Reabrir esta data?'); });
-  $$('.service-book').forEach(btn => btn.addEventListener('click', () => {
-    $('#serviceSelect').value = btn.dataset.service;
-    updateBookingSummary();
-    loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value);
-    document.querySelector('#agendar').scrollIntoView({ behavior: 'smooth' });
-  }));
+}
+
+function bindEvents() {
+  bindPageChrome();
+  bindBookingForm();
+  bindCustomerArea();
+  bindAdminArea();
 }
 
 async function init() {
