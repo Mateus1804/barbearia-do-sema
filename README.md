@@ -78,7 +78,7 @@ O servidor verifica a agenda a cada minuto. O lembrete de 24 horas só é enviad
 npm test
 ```
 
-São ~70 testes, todos com banco em memória (não tocam nos dados reais), e rodam em cerca de um minuto:
+São ~75 testes, todos com banco em memória (não tocam nos dados reais), e rodam em cerca de um minuto:
 
 | Arquivo | O que protege |
 |---|---|
@@ -86,6 +86,7 @@ São ~70 testes, todos com banco em memória (não tocam nos dados reais), e rod
 | `test/core.test.js` | Slots de 30 min, fuso de Brasília, antecedência mínima de 10 min, lembretes de 24h/3h |
 | `test/api.test.js` e `test/appointments-lifecycle.test.js` | Fluxo completo pela API: agendar, consultar, remarcar, cancelar, regra das 2 horas, almoço, bloqueios, dias fechados, login e ações do administrador, validações de entrada |
 | `test/booking-form.browser.test.js` | Formulário no navegador: lista do que falta, campos em vermelho, máscara do telefone, dia padrão, envio e proteção contra respostas atrasadas |
+| `test/frontend-resilience.browser.test.js` | Sessão do admin salva ao recarregar, checkbox do WhatsApp ausente no HTML, falhas de rede (mensagem "Verifique sua conexão") sem mascarar erros do servidor |
 | `test/layout.browser.test.js` | Layout em desktop, tablet e celular: sem rolagem lateral, cards alinhados, mapa e títulos centralizados, animações que não deslocam elementos |
 
 Os testes de navegador usam o Chromium do Playwright. Na primeira vez, instale-o com `npx playwright install chromium`; se ele não estiver instalado, esses testes são pulados em vez de falhar. Para rodar um arquivo só: `node --test test/layout.browser.test.js`.
