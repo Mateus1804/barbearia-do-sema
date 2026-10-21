@@ -73,8 +73,16 @@ function createDatabase(config) {
   function appointmentColumns() { return db.prepare('PRAGMA table_info(agendamentos)').all().map(column => column.name); }
   const migratedFromCode = appointmentColumns().includes('confirmation_code');
   if (migratedFromCode) {
+    const legacyColumns = new Set(appointmentColumns());
+    // Somente nomes de colunas definidos pelo código entram nas expressões da migração.
+    const legacyValue = (column, fallback) => legacyColumns.has(column) ? column : fallback;
+    const programmedAt = legacyColumns.has('programado_em')
+      ? "COALESCE(NULLIF(trim(programado_em),''),atualizado_em,criado_em)"
+      : 'COALESCE(atualizado_em,criado_em)';
     const migrateAppointments = db.transaction(() => {
+      const previousSequence = db.prepare("SELECT seq FROM sqlite_sequence WHERE name='agendamentos'").get()?.seq || 0;
       db.exec(`DROP INDEX IF EXISTS idx_agendamentos_data; DROP INDEX IF EXISTS idx_agendamentos_telefone;
+        DROP INDEX IF EXISTS idx_agendamentos_email;
         ALTER TABLE agendamentos RENAME TO agendamentos_com_codigo;
         CREATE TABLE agendamentos (
           id INTEGER PRIMARY KEY AUTOINCREMENT, cliente_nome TEXT NOT NULL, cliente_telefone TEXT NOT NULL, cliente_email TEXT,
@@ -82,11 +90,13 @@ function createDatabase(config) {
           starts_at_utc TEXT NOT NULL, duracao_minutos INTEGER NOT NULL,
           status TEXT NOT NULL DEFAULT 'agendado' CHECK(status IN ('agendado','presente','cancelado')),
           motivo_cancelamento TEXT, criado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL, programado_em TEXT NOT NULL,
-          lembrete_24h_enviado_em TEXT, lembrete_3h_enviado_em TEXT
+          lembrete_24h_enviado_em TEXT, lembrete_3h_enviado_em TEXT,
+          telefone_whatsapp INTEGER NOT NULL DEFAULT 0
         );
-        INSERT INTO agendamentos (id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em,programado_em)
-        SELECT id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em,COALESCE(atualizado_em,criado_em) FROM agendamentos_com_codigo;
+        INSERT INTO agendamentos (id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em,programado_em,lembrete_24h_enviado_em,lembrete_3h_enviado_em,telefone_whatsapp)
+        SELECT id,cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,motivo_cancelamento,criado_em,atualizado_em,${programmedAt},${legacyValue('lembrete_24h_enviado_em', 'NULL')},${legacyValue('lembrete_3h_enviado_em', 'NULL')},${legacyValue('telefone_whatsapp', '0')} FROM agendamentos_com_codigo;
         DROP TABLE agendamentos_com_codigo;`);
+      db.prepare("UPDATE sqlite_sequence SET seq=max(seq,?) WHERE name='agendamentos'").run(previousSequence);
     });
     migrateAppointments();
   }

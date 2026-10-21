@@ -4,9 +4,13 @@
 const nodemailer = require('nodemailer');
 const { TIME_ZONE, pad, localToday, startUtc } = require('./calendar');
 const REMINDER_DELIVERY_WINDOW_MS = 15 * 60_000;
+const REMINDERS = [
+  { type: '24h', sentColumn: 'lembrete_24h_enviado_em', thresholdMs: 24 * 60 * 60_000 },
+  { type: '3h', sentColumn: 'lembrete_3h_enviado_em', thresholdMs: 3 * 60 * 60_000 }
+];
 
 function shouldSendReminder(appointment, type, now = Date.now()) {
-  const thresholdMs = type === '24h' ? 24 * 60 * 60_000 : type === '3h' ? 3 * 60 * 60_000 : 0;
+  const thresholdMs = REMINDERS.find(reminder => reminder.type === type)?.thresholdMs;
   if (!thresholdMs) return false;
   const startMs = Date.parse(appointment.starts_at_utc);
   const programmedAt = Date.parse(appointment.programado_em || appointment.atualizado_em || appointment.criado_em);
@@ -59,23 +63,35 @@ function createReminderService({ db, config, mailer = createMailer(config), cloc
     return true;
   }
   let reminderJobRunning = false;
+  const findAppointment = db.prepare(`SELECT a.*,s.nome AS servico_nome FROM agendamentos a
+    JOIN servicos s ON s.id=a.servico_id WHERE a.id=? AND a.status IN ('agendado','presente')`);
+
+  async function sendDueReminder(id, { type, sentColumn }) {
+    // Um envio SMTP cede a execução: cancelamentos e remarcações podem ocorrer nesse intervalo.
+    const appointment = findAppointment.get(id);
+    if (!appointment || appointment[sentColumn] || !shouldSendReminder(appointment, type, clock())) return;
+    try {
+      if (await sendReminderEmail(appointment, type)) {
+        // Confirma apenas a programação enviada, preservando os lembretes de uma eventual remarcação.
+        db.prepare(`UPDATE agendamentos SET ${sentColumn}=? WHERE id=? AND ${sentColumn} IS NULL
+          AND programado_em IS ? AND starts_at_utc=? AND status IN ('agendado','presente')`)
+          .run(new Date(clock()).toISOString(), id, appointment.programado_em, appointment.starts_at_utc);
+      }
+    } catch (error) {
+      console.error(`[lembretes] Falha no lembrete de ${type} do agendamento ${id}:`, error.message);
+    }
+  }
+
   async function dispatchDueReminders() {
     if (!mailer || reminderJobRunning) return;
     reminderJobRunning = true;
     try {
       const now = clock();
-      const rows = db.prepare("SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.status IN ('agendado','presente') AND a.cliente_email IS NOT NULL AND trim(a.cliente_email) != '' AND a.starts_at_utc > ? ORDER BY a.starts_at_utc").all(new Date(now).toISOString());
-      for (const appointment of rows) {
-        if (!appointment.lembrete_24h_enviado_em && shouldSendReminder(appointment, '24h', now)) {
-          try {
-            if (await sendReminderEmail(appointment, '24h')) db.prepare('UPDATE agendamentos SET lembrete_24h_enviado_em=? WHERE id=? AND lembrete_24h_enviado_em IS NULL').run(new Date(clock()).toISOString(), appointment.id);
-          } catch (error) { console.error('[lembretes] Falha no lembrete de 24h do agendamento ' + appointment.id + ':', error.message); }
-        }
-        if (!appointment.lembrete_3h_enviado_em && shouldSendReminder(appointment, '3h', now)) {
-          try {
-            if (await sendReminderEmail(appointment, '3h')) db.prepare('UPDATE agendamentos SET lembrete_3h_enviado_em=? WHERE id=? AND lembrete_3h_enviado_em IS NULL').run(new Date(clock()).toISOString(), appointment.id);
-          } catch (error) { console.error('[lembretes] Falha no lembrete de 3h do agendamento ' + appointment.id + ':', error.message); }
-        }
+      const appointments = db.prepare(`SELECT id FROM agendamentos WHERE status IN ('agendado','presente')
+        AND cliente_email IS NOT NULL AND trim(cliente_email) != '' AND starts_at_utc > ?
+        ORDER BY starts_at_utc,id`).all(new Date(now).toISOString());
+      for (const { id } of appointments) {
+        for (const reminder of REMINDERS) await sendDueReminder(id, reminder);
       }
     } finally { reminderJobRunning = false; }
   }
