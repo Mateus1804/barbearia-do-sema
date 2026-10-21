@@ -25,10 +25,27 @@ function createApplication(options = {}) {
   const reminders = createReminderService({ db, config, mailer: options.mailer, clock: options.clock });
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
-  app.use(helmet({ contentSecurityPolicy: false })); // CSS e scripts locais; CSP pode ser habilitada ao personalizar a hospedagem.
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        scriptSrcAttr: ["'none'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: ["'self'", 'data:', 'https://images.unsplash.com'],
+        connectSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        // O proxy de produção termina o HTTPS; o ambiente local também precisa funcionar por HTTP.
+        upgradeInsecureRequests: null
+      }
+    }
+  }));
   app.use(express.json({ limit: '40kb' }));
   app.use(express.urlencoded({ extended: false, limit: '40kb' }));
-  app.use('/api/', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false }));
+  app.use(['/api', '/admin'], (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
+  app.use('/api/', rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Muitas requisições. Aguarde alguns instantes e tente novamente.' } }));
   app.use('/admin/login', rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false, message: { error: 'Muitas tentativas. Aguarde alguns minutos e tente novamente.' } }));
 
   const publicDir = path.join(__dirname, '..', 'public');
@@ -36,6 +53,7 @@ function createApplication(options = {}) {
 
   registerCustomerRoutes(app, { db, booking, config });
   registerAdminRoutes(app, { db, booking, auth, config });
+  app.use(['/api', '/admin'], (req, res) => res.status(404).json({ error: 'Rota não encontrada.' }));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api/') || req.path.startsWith('/admin/')) return next();
     res.sendFile(path.join(publicDir, 'index.html'));

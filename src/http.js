@@ -23,7 +23,10 @@ function handleError(err, req, res, next) {
   if (res.headersSent) return next(err);
   const status = Number(err.status) || 500;
   if (status >= 500) console.error(err);
-  res.status(status).json({ error: status >= 500 ? 'Ocorreu um erro inesperado. Tente novamente.' : err.message });
+  let message = err.message;
+  if (err.type === 'entity.parse.failed') message = 'Envie um JSON válido.';
+  if (err.type === 'entity.too.large') message = 'O conteúdo enviado excede o limite de 40 KB.';
+  res.status(status).json({ error: status >= 500 ? 'Ocorreu um erro inesperado. Tente novamente.' : message });
 }
 
 module.exports = { HttpError, catchRoute, deleteById, handleError };

@@ -109,9 +109,8 @@ test('remarcar durante o envio não marca o lembrete da nova programação como 
 });
 
 test('o relógio é reavaliado após um envio lento para respeitar a janela dos próximos lembretes', async context => {
-  let runtime;
   let count = 0;
-  runtime = setup(context, () => { if (++count === 1) runtime.advance(16 * 60_000); });
+  const runtime = setup(context, () => { if (++count === 1) runtime.advance(16 * 60_000); });
   insert(runtime.db);
   insert(runtime.db);
   await runtime.dispatchDueReminders();

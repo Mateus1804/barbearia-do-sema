@@ -13,7 +13,7 @@ async function init() {
   setupDateLimits();
   updateBookingStep();
   try { await loadServices(); updateBookingSummary(); await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); }
-  catch (error) { showToast('Não foi possível carregar os serviços. Atualize a página em instantes.', 'error'); }
+  catch { showToast('Não foi possível carregar os serviços. Atualize a página em instantes.', 'error'); }
   if (state.adminToken) {
     // Token is session-scoped in the browser. The server remains the authority and will invalidate expired tokens.
     setAdminView(true);
