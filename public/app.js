@@ -320,7 +320,8 @@ async function startEditAppointment(id) {
 }
 async function saveEditAppointment(event) {
   event.preventDefault();
-  const form = event.currentTarget;
+  const form = event.target.closest('form[data-edit-form]');
+  if (!form) return;
   const id = form.dataset.editForm;
   const auth = state.customerAuth;
   if (!auth) return;
@@ -371,13 +372,17 @@ async function loginAdmin(event) {
 function adminStatus(status) { if (status === 'presente') return ['Pré-confirmada', 'present']; if (status === 'cancelado') return ['Cancelado', 'cancelled']; return ['Agendado', '']; }
 async function loadAdminAppointments() {
   if (!state.adminToken) return;
+  const root = $('#adminAppointments');
+  const requestId = (root.agendaRequestId = (root.agendaRequestId || 0) + 1);
+  const token = state.adminToken;
+  const isStale = () => root.agendaRequestId !== requestId || state.adminToken !== token;
   const from = $('#adminFrom').value || localDateString();
   const to = $('#adminTo').value || from;
   if (to < from) { showToast('A data final deve ser igual ou posterior à inicial.', 'error'); return; }
-  const root = $('#adminAppointments');
   root.innerHTML = '<div class="empty-state">Carregando agenda...</div>';
   try {
     const data = await api(`/admin/appointments?de=${encodeURIComponent(from)}&ate=${encodeURIComponent(to)}`, { headers: adminHeaders() });
+    if (isStale()) return;
     const appointments = data.agendamentos || [];
     const scheduled = appointments.filter(a => a.status === 'agendado').length;
     const attended = appointments.filter(a => a.status === 'presente').length;
@@ -390,6 +395,7 @@ async function loadAdminAppointments() {
     renderAdminLists(data.bloqueios || [], data.feriados || []);
     await loadAdminBookingSlots();
   } catch (error) {
+    if (isStale()) return;
     root.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
     if (/sessão|expirada/i.test(error.message)) { state.adminToken = ''; sessionStorage.removeItem('sema_admin_token'); setAdminView(false); }
   }
@@ -399,6 +405,9 @@ async function loadAdminBookingSlots() {
   const serviceId = $('#adminBookingService').value;
   const select = $('#adminBookingTime');
   const hint = $('#adminBookingHint');
+  const requestId = (select.slotRequestId = (select.slotRequestId || 0) + 1);
+  const token = state.adminToken;
+  const isStale = () => select.slotRequestId !== requestId || state.adminToken !== token;
   select.disabled = true;
   select.innerHTML = '<option value="">Buscando horários...</option>';
   if (!date || !serviceId || !state.adminToken) {
@@ -408,15 +417,17 @@ async function loadAdminBookingSlots() {
   }
   try {
     const data = await api(`/admin/available-slots/${encodeURIComponent(date)}/${encodeURIComponent(serviceId)}`, { headers: adminHeaders() });
+    if (isStale()) return;
     if (!data.slots.length) {
       select.innerHTML = '<option value="">Nenhum horário livre</option>';
-      hint.textContent = 'Não há horários livres nessa data ou os horários restantes estão a menos de 2 horas.';
+      hint.textContent = 'Não há horários livres nessa data ou os horários restantes estão a menos de 10 minutos.';
       return;
     }
     select.innerHTML = '<option value="">Selecione um horário</option>' + data.slots.map(t => `<option value="${t}">${t}</option>`).join('');
     select.disabled = false;
     hint.textContent = `${data.slots.length} ${data.slots.length === 1 ? 'horário livre' : 'horários livres'}. O almoço (12h–13h) e os bloqueios são respeitados.`;
   } catch (error) {
+    if (isStale()) return;
     select.innerHTML = '<option value="">Data indisponível</option>';
     hint.textContent = error.message;
   }

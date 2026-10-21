@@ -1,6 +1,7 @@
 // Teste de navegador do formulário de agendamento: indicador de pendências, campos em vermelho e envio.
 // Se o Chromium do Playwright não estiver instalado, o teste é pulado (rode `npx playwright install chromium`).
-const { test, before, after } = require('node:test');
+const { before, after } = require('node:test');
+const { createBrowserTest } = require('./helpers/browser');
 const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';
@@ -48,9 +49,9 @@ async function openBookingPage() {
   return { context, page, apiPosts };
 }
 
-const skipIfNoBrowser = () => (launchError ? { skip: `Chromium indisponível: ${launchError.message.split('\n')[0]}` } : {});
+const browserTest = createBrowserTest(() => launchError);
 
-test('indicador lista o que falta, marca o telefone em vermelho e não envia sem dados completos', skipIfNoBrowser(), async () => {
+browserTest('indicador lista o que falta, marca o telefone em vermelho e não envia sem dados completos', async () => {
   const { context, page, apiPosts } = await openBookingPage();
   try {
     const box = page.locator('#bookingRequirements');
@@ -89,7 +90,7 @@ test('indicador lista o que falta, marca o telefone em vermelho e não envia sem
   }
 });
 
-test('indicador vira "tudo certo" e o agendamento é criado quando todas as pendências são resolvidas', skipIfNoBrowser(), async () => {
+browserTest('indicador vira "tudo certo" e o agendamento é criado quando todas as pendências são resolvidas', async () => {
   const { context, page, apiPosts } = await openBookingPage();
   try {
     await page.fill('#clientName', 'Cliente Browser');
@@ -112,7 +113,7 @@ test('indicador vira "tudo certo" e o agendamento é criado quando todas as pend
   }
 });
 
-test('clicar numa pendência leva direto ao campo que falta', skipIfNoBrowser(), async () => {
+browserTest('clicar numa pendência leva direto ao campo que falta', async () => {
   const { context, page } = await openBookingPage();
   try {
     await page.locator('#requirementsList').getByText('E-mail', { exact: true }).click();
@@ -124,7 +125,7 @@ test('clicar numa pendência leva direto ao campo que falta', skipIfNoBrowser(),
   }
 });
 
-test('máscara do telefone: formata celular e fixo, preserva número internacional', skipIfNoBrowser(), async () => {
+browserTest('máscara do telefone: formata celular e fixo, preserva número internacional', async () => {
   const { context, page } = await openBookingPage();
   try {
     const typed = async text => {
@@ -142,7 +143,7 @@ test('máscara do telefone: formata celular e fixo, preserva número internacion
   }
 });
 
-test('o dia padrão é o próximo dia útil: nunca hoje, nunca domingo; hoje continua selecionável', skipIfNoBrowser(), async () => {
+browserTest('o dia padrão é o próximo dia útil: nunca hoje, nunca domingo; hoje continua selecionável', async () => {
   const { context, page } = await openBookingPage();
   try {
     const value = await page.inputValue('#appointmentDate');
@@ -155,7 +156,7 @@ test('o dia padrão é o próximo dia útil: nunca hoje, nunca domingo; hoje con
   }
 });
 
-test('"Fazer outro agendamento" volta ao formulário limpo, sem campos vermelhos', skipIfNoBrowser(), async () => {
+browserTest('"Fazer outro agendamento" volta ao formulário limpo, sem campos vermelhos', async () => {
   const { context, page } = await openBookingPage();
   try {
     await page.fill('#clientName', 'Cliente Reset');
@@ -181,7 +182,7 @@ test('"Fazer outro agendamento" volta ao formulário limpo, sem campos vermelhos
   }
 });
 
-test('resposta atrasada de uma consulta antiga não sobrescreve os horários da data escolhida depois', skipIfNoBrowser(), async () => {
+browserTest('resposta atrasada de uma consulta antiga não sobrescreve os horários da data escolhida depois', async () => {
   const { context, page } = await openBookingPage();
   try {
     const chosen = bookableDate(5);

@@ -475,6 +475,8 @@ app.get('/admin/appointments', requireAdmin, catchRoute((req, res) => {
   const from = req.query.de ? String(req.query.de) : localToday();
   const to = req.query.ate ? String(req.query.ate) : from;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) throw new HttpError(400, 'Período inválido.');
+  ensureCalendarDate(from, 'Período inválido.');
+  ensureCalendarDate(to, 'Período inválido.');
   const rows = db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.data_agendamento BETWEEN ? AND ? ORDER BY a.data_agendamento,a.hora_agendamento`).all(from, to);
   res.json({ agendamentos: rows.map(publicAppointment), feriados: db.prepare('SELECT * FROM feriados WHERE data BETWEEN ? AND ? ORDER BY data').all(from, to), bloqueios: db.prepare('SELECT * FROM horarios_bloqueados WHERE data BETWEEN ? AND ? ORDER BY data,hora').all(from, to) });
 }));

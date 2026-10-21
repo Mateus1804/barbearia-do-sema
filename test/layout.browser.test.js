@@ -1,7 +1,8 @@
 // Testes de layout no navegador (Playwright): alinhamento, centralização e ausência de rolagem lateral
 // em desktop, tablet e celular. Cada teste trava um defeito visual que já aconteceu de verdade.
 // Se o Chromium do Playwright não estiver instalado, os testes são pulados (`npx playwright install chromium`).
-const { test, before, after } = require('node:test');
+const { before, after } = require('node:test');
+const { createBrowserTest } = require('./helpers/browser');
 const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';
@@ -36,7 +37,7 @@ after(async () => {
   await new Promise(resolve => server.close(resolve));
 });
 
-const skipIfNoBrowser = () => (launchError ? { skip: `Chromium indisponível: ${launchError.message.split('\n')[0]}` } : {});
+const browserTest = createBrowserTest(() => launchError);
 
 // `settle: true` desliga só a revelação ao rolar (opacity/transform de entrada) para medir o layout final.
 async function open({ width, height }, { settle = true } = {}) {
@@ -55,7 +56,7 @@ const rectOf = (page, selector, nth = 0) => page.locator(selector).nth(nth).eval
 const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) <= TOLERANCE, `${message} (obtido ${actual.toFixed(1)}, esperado ${expected.toFixed(1)})`);
 
 for (const viewport of VIEWPORTS) {
-  test(`${viewport.name}: a página não tem rolagem horizontal`, skipIfNoBrowser(), async () => {
+  browserTest(`${viewport.name}: a página não tem rolagem horizontal`, async () => {
     const { context, page } = await open(viewport);
     try {
       const { scrollWidth, clientWidth } = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
@@ -63,7 +64,7 @@ for (const viewport of VIEWPORTS) {
     } finally { await context.close(); }
   });
 
-  test(`${viewport.name}: cards de serviço alinhados, grade sem buraco e selo "queridinho" no canto`, skipIfNoBrowser(), async () => {
+  browserTest(`${viewport.name}: cards de serviço alinhados, grade sem buraco e selo "queridinho" no canto`, async () => {
     const { context, page } = await open(viewport);
     try {
       const grid = await rectOf(page, '.services-grid');
@@ -99,7 +100,7 @@ for (const viewport of VIEWPORTS) {
     } finally { await context.close(); }
   });
 
-  test(`${viewport.name}: cartão e pino do mapa ficam centralizados no mapa`, skipIfNoBrowser(), async () => {
+  browserTest(`${viewport.name}: cartão e pino do mapa ficam centralizados no mapa`, async () => {
     const { context, page } = await open(viewport);
     try {
       const map = await rectOf(page, '.map-card');
@@ -112,7 +113,7 @@ for (const viewport of VIEWPORTS) {
     } finally { await context.close(); }
   });
 
-  test(`${viewport.name}: títulos de seção e cartão de agendamento centralizados`, skipIfNoBrowser(), async () => {
+  browserTest(`${viewport.name}: títulos de seção e cartão de agendamento centralizados`, async () => {
     const { context, page } = await open(viewport);
     try {
       const heading = await rectOf(page, '.services-section .section-heading');
@@ -127,7 +128,7 @@ for (const viewport of VIEWPORTS) {
     } finally { await context.close(); }
   });
 
-  test(`${viewport.name}: animações não tiram elementos posicionados do lugar`, skipIfNoBrowser(), async () => {
+  browserTest(`${viewport.name}: animações não tiram elementos posicionados do lugar`, async () => {
     // O cartão do mapa chegou a ser empurrado 139px porque uma animação sobrescrevia o transform que o centralizava.
     const { context, page } = await open(viewport, { settle: false });
     try {
@@ -156,7 +157,7 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
-test('desktop: o painel de pendências abre neutro e só fica vermelho depois de um campo inválido', skipIfNoBrowser(), async () => {
+browserTest('desktop: o painel de pendências abre neutro e só fica vermelho depois de um campo inválido', async () => {
   const { context, page } = await open(VIEWPORTS[0]);
   try {
     const panel = page.locator('#bookingRequirements');
