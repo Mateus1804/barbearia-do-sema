@@ -1,7 +1,7 @@
 // Robustez do frontend (Playwright): sessão do admin ao recarregar, elementos ausentes no DOM e falhas de rede.
 // Cada teste trava um bug já corrigido. Se o Chromium não estiver instalado, os testes são pulados.
 const { before, after } = require('node:test');
-const { createBrowserTest } = require('./helpers/browser');
+const { createBrowserTest } = require('../test-support/browser');
 const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';

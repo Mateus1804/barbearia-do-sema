@@ -1,0 +1,162 @@
+'use strict';
+
+
+const BookingRules = require('../public/booking-rules');
+const { HttpError } = require('./http');
+const { SLOT_MINUTES, OPENING_MINUTES, CLOSING_MINUTES, pad, minutesOf, timeLabel,
+  ensureCalendarDate, localToday, startUtc, isValidTimeFormat, hasMinimumBookingNotice } = require('./calendar');
+
+function createBookingService(db) {
+  function normalizePhone(input) { return BookingRules.canonicalPhone(input); }
+  function validPhone(input) { return BookingRules.isValidPhone(input); }
+  function formatPhone(input) { return BookingRules.formatPhone(input); }
+  function cleanText(v, max = 120) { return String(v ?? '').trim().replace(/[<>]/g, '').slice(0, max); }
+  function normalizeEmail(input) { return cleanText(input, 160).toLowerCase(); }
+  function validEmail(input) { return BookingRules.isValidEmail(input); }
+  function registerCustomer({ name, phone, email, now = new Date().toISOString() }) {
+    db.prepare(`INSERT INTO clientes (cliente_nome,cliente_telefone,cliente_email,criado_em,atualizado_em) VALUES (?,?,?,?,?)
+      ON CONFLICT(cliente_telefone,cliente_email) DO UPDATE SET cliente_nome=excluded.cliente_nome, atualizado_em=excluded.atualizado_em`).run(name, phone, email, now, now);
+  }
+  function getService(id) { return db.prepare('SELECT id,nome,preco_cents,duracao_minutos,descricao FROM servicos WHERE id=?').get(Number(id)); }
+  function getAppointment(id) {
+    return db.prepare(`SELECT a.*, s.nome AS servico_nome, s.preco_cents AS preco_cents FROM agendamentos a JOIN servicos s ON s.id=a.servico_id WHERE a.id=?`).get(Number(id));
+  }
+  function publicAppointment(a) {
+    return {
+      id: a.id,
+      nome: a.cliente_nome,
+      telefone: formatPhone(a.cliente_telefone),
+      telefone_normalizado: a.cliente_telefone,
+      email: a.cliente_email || null,
+      servico_id: a.servico_id,
+      servico: a.servico_nome,
+      preco: (a.preco_cents / 100),
+      data: a.data_agendamento,
+      hora: a.hora_agendamento,
+      duracao_minutos: a.duracao_minutos,
+      status: a.status,
+      motivo_cancelamento: a.motivo_cancelamento || null,
+      whatsapp: !!a.telefone_whatsapp,
+      criado_em: a.criado_em
+    };
+  }
+  function ensureDate(dateStr, { allowToday = false } = {}) {
+    ensureCalendarDate(dateStr);
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(Date.UTC(y, m - 1, d));
+    const today = localToday();
+    if (dateStr < today || (!allowToday && dateStr === today)) throw new HttpError(400, 'Escolha uma data futura.');
+    const max = new Date(`${today}T12:00:00Z`); max.setUTCDate(max.getUTCDate() + 30);
+    const maxDate = `${max.getUTCFullYear()}-${pad(max.getUTCMonth() + 1)}-${pad(max.getUTCDate())}`;
+    if (dateStr > maxDate) throw new HttpError(400, 'Os agendamentos podem ser feitos com até 30 dias de antecedência.');
+    if (date.getUTCDay() === 0) throw new HttpError(400, 'A barbearia fecha aos domingos. Escolha outro dia.');
+    if (db.prepare('SELECT 1 FROM feriados WHERE data=?').get(dateStr)) throw new HttpError(400, 'A barbearia não atende nesta data. Escolha outro dia.');
+    return date;
+  }
+  function hasOverlap(dateStr, timeStr, durationMinutes, ignoreId = null) {
+    const start = startUtc(dateStr, timeStr).getTime();
+    const end = start + durationMinutes * 60_000;
+    const appts = db.prepare(`SELECT id,hora_agendamento,duracao_minutos FROM agendamentos WHERE data_agendamento=? AND status!='cancelado' ${ignoreId ? 'AND id != ?' : ''}`).all(...(ignoreId ? [dateStr, ignoreId] : [dateStr]));
+    for (const a of appts) {
+      const otherStart = startUtc(dateStr, a.hora_agendamento).getTime();
+      const otherEnd = otherStart + a.duracao_minutos * 60_000;
+      if (start < otherEnd && end > otherStart) return true;
+    }
+    // Explicit manual blocks have 30-minute granularity and collide with every slot touched by the service.
+    const blocks = db.prepare('SELECT hora FROM horarios_bloqueados WHERE data=?').all(dateStr);
+    for (const b of blocks) {
+      const blockStart = startUtc(dateStr, b.hora).getTime();
+      if (start < blockStart + SLOT_MINUTES * 60_000 && end > blockStart) return true;
+    }
+    // Lunch is always unavailable, even if an admin forgets to add a block.
+    const lunchStart = startUtc(dateStr, '12:00').getTime();
+    const lunchEnd = startUtc(dateStr, '13:00').getTime();
+    if (start < lunchEnd && end > lunchStart) return true;
+    return false;
+  }
+  function freeSlots(date, service) {
+    const slots = [];
+    for (let minutes = OPENING_MINUTES; minutes + service.duracao_minutos <= CLOSING_MINUTES; minutes += SLOT_MINUTES) {
+      const time = timeLabel(minutes);
+      if (hasMinimumBookingNotice(startUtc(date, time)) && !hasOverlap(date, time, service.duracao_minutos)) slots.push(time);
+    }
+    return slots;
+  }
+  function validateBookable({ date, time, service, ignoreId = null }) {
+    ensureDate(date, { allowToday: true });
+    if (!service) throw new HttpError(400, 'Selecione um serviço válido.');
+    if (!isValidTimeFormat(time)) throw new HttpError(400, 'Selecione um horário válido.');
+    const minsFromMidnight = minutesOf(time);
+    if (minsFromMidnight < OPENING_MINUTES || minsFromMidnight >= CLOSING_MINUTES) throw new HttpError(400, 'O horário precisa estar entre 09h e 19h30.');
+    if (minsFromMidnight + service.duracao_minutos > CLOSING_MINUTES) throw new HttpError(400, 'Esse serviço ultrapassa o horário de fechamento.');
+    const start = startUtc(date, time);
+    if (!hasMinimumBookingNotice(start)) throw new HttpError(400, 'O agendamento precisa ser feito com pelo menos 10 minutos de antecedência.');
+    if (hasOverlap(date, time, service.duracao_minutos, ignoreId)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
+  }
+  function validCustomerAuth(phoneInput, emailInput) {
+    const hasPhone = String(phoneInput ?? '').trim() !== '';
+    const hasEmail = String(emailInput ?? '').trim() !== '';
+    const phone = hasPhone ? normalizePhone(phoneInput) : '';
+    const email = hasEmail ? normalizeEmail(emailInput) : '';
+    if ((!hasPhone && !hasEmail) || (hasPhone && !validPhone(phone)) || (hasEmail && !validEmail(email))) {
+      return { ok: false, phone, email };
+    }
+    let customer;
+    if (hasPhone && hasEmail) {
+      customer = db.prepare('SELECT id FROM clientes WHERE cliente_telefone=? AND cliente_email=? COLLATE NOCASE').get(phone, email);
+    } else if (hasPhone) {
+      customer = db.prepare('SELECT id FROM clientes WHERE cliente_telefone=?').get(phone);
+    } else {
+      customer = db.prepare('SELECT id FROM clientes WHERE cliente_email=? COLLATE NOCASE').get(email);
+    }
+    return customer ? { ok: true, phone, email } : { ok: false, phone, email };
+  }
+  function customerOwnsAppointment(appointment, auth) {
+    if (auth.phone && auth.email) {
+      return appointment.cliente_telefone === auth.phone && normalizeEmail(appointment.cliente_email) === auth.email;
+    }
+    if (auth.phone) return appointment.cliente_telefone === auth.phone;
+    if (auth.email) return normalizeEmail(appointment.cliente_email) === auth.email;
+    return false;
+  }
+
+  function createAppointment(body, { admin = false } = {}) {
+    const name = cleanText(body.nome, 80);
+    const phone = normalizePhone(body.telefone);
+    const whatsapp = body.whatsapp === true || body.whatsapp === "true" ? 1 : 0;
+    const email = normalizeEmail(body.email);
+    const service = getService(body.servico_id);
+    const date = String(body.data || '');
+    const time = String(body.hora || '');
+    if (name.length < 2) throw new HttpError(400, admin ? 'Informe o nome do cliente.' : 'Informe seu nome completo.');
+    if (!validPhone(phone)) throw new HttpError(400, 'Informe um fixo ou celular com DDD, ou um número internacional começando com +.');
+    if (!validEmail(email)) throw new HttpError(400, admin ? 'Informe um e-mail válido para que os lembretes possam ser enviados.' : 'Informe um e-mail válido para cadastrar seu contato e receber os lembretes.');
+    validateBookable({ date, time, service });
+    const now = new Date().toISOString();
+    let id;
+    const create = db.transaction(() => {
+      if (hasOverlap(date, time, service.duracao_minutos)) throw new HttpError(409, 'Esse horário acabou de ficar indisponível. Escolha outro horário.');
+      registerCustomer({ name, phone, email, now });
+      const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em,telefone_whatsapp) VALUES (?,?,?,?,?,?,?,?, 'agendado',?,?,?,?)`).run(name, phone, email, service.id, date, time, startUtc(date, time).toISOString(), service.duracao_minutos, now, now, now, whatsapp);
+      id = Number(result.lastInsertRowid);
+    });
+    create();
+    return { id, nome: name, telefone: formatPhone(phone), whatsapp: !!whatsapp, email, servico: service.nome, preco: service.preco_cents / 100, data: date, hora: time, status: 'agendado' };
+  }
+
+
+  function listCustomerAppointments(auth) {
+    const conditions = [];
+    const values = [];
+    if (auth.phone) { conditions.push('a.cliente_telefone=?'); values.push(auth.phone); }
+    if (auth.email) { conditions.push('lower(a.cliente_email)=?'); values.push(auth.email); }
+    if (!conditions.length) return [];
+    return db.prepare(`SELECT a.*,s.nome AS servico_nome,s.preco_cents FROM agendamentos a
+      JOIN servicos s ON s.id=a.servico_id WHERE ${conditions.join(' AND ')}
+      ORDER BY a.data_agendamento DESC,a.hora_agendamento DESC`).all(...values);
+  }
+
+  return { cleanText, normalizeEmail, getService, getAppointment, publicAppointment, ensureDate, hasOverlap, freeSlots, validateBookable, validCustomerAuth, customerOwnsAppointment, createAppointment, listCustomerAppointments, validPhone, validEmail };
+}
+
+module.exports = { createBookingService };

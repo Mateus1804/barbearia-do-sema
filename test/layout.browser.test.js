@@ -2,7 +2,7 @@
 // em desktop, tablet e celular. Cada teste trava um defeito visual que já aconteceu de verdade.
 // Se o Chromium do Playwright não estiver instalado, os testes são pulados (`npx playwright install chromium`).
 const { before, after } = require('node:test');
-const { createBrowserTest } = require('./helpers/browser');
+const { createBrowserTest } = require('../test-support/browser');
 const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';

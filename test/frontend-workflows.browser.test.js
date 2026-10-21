@@ -2,7 +2,7 @@
 
 const { before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const { createBrowserTest } = require('./helpers/browser');
+const { createBrowserTest } = require('../test-support/browser');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';
 process.env.JWT_SECRET = 'test-only-jwt-secret-with-at-least-32-characters';

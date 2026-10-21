@@ -1,7 +1,7 @@
 // Teste de navegador do formulário de agendamento: indicador de pendências, campos em vermelho e envio.
 // Se o Chromium do Playwright não estiver instalado, o teste é pulado (rode `npx playwright install chromium`).
 const { before, after } = require('node:test');
-const { createBrowserTest } = require('./helpers/browser');
+const { createBrowserTest } = require('../test-support/browser');
 const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';

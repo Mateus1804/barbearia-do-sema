@@ -15,8 +15,12 @@ module.exports = [
     }
   },
   {
-    files: ['public/**/*.js'],
+    files: ['public/booking-rules.js'],
     languageOptions: { sourceType: 'script', globals: { ...globals.browser, BookingRules: 'readonly', module: 'readonly' } }
+  },
+  {
+    files: ['public/app.js', 'public/js/**/*.js'],
+    languageOptions: { sourceType: 'module', globals: { ...globals.browser } }
   },
   {
     // page.evaluate() roda dentro do navegador, então os testes de navegador enxergam globals do DOM.
