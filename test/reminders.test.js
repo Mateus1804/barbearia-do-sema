@@ -12,39 +12,75 @@ const NOW = Date.parse('2026-10-21T12:00:00.000Z');
 function setup(context, sendMail) {
   const messages = [];
   let now = NOW;
-  const config = readConfig({ DB_PATH: ':memory:', ADMIN_PASSWORD: 'test-only-password', EMAIL_FROM: 'barbearia@example.com' });
-  const mailer = { sendMail: async message => { messages.push(message); await sendMail?.(message); } };
+  const config = readConfig({
+    DB_PATH: ':memory:',
+    ADMIN_PASSWORD: 'test-only-password',
+    EMAIL_FROM: 'barbearia@example.com'
+  });
+  const mailer = {
+    sendMail: async (message) => {
+      messages.push(message);
+      await sendMail?.(message);
+    }
+  };
   const runtime = createApplication({ config, mailer, clock: () => now });
   context.after(() => runtime.db.close());
-  return { ...runtime, messages, advance: milliseconds => { now += milliseconds; } };
+  return {
+    ...runtime,
+    messages,
+    advance: (milliseconds) => {
+      now += milliseconds;
+    }
+  };
 }
 
 function insert(db, { hours = 3, leadHours = 30, status = 'agendado', name = 'Cliente', ...overrides } = {}) {
   const startsAt = new Date(NOW + hours * HOUR_MS).toISOString();
   const programmedAt = new Date(Date.parse(startsAt) - leadHours * HOUR_MS).toISOString();
   const { date, time } = utcToLocal(startsAt);
-  const result = db.prepare(`INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,
+  const result = db
+    .prepare(
+      `INSERT INTO agendamentos (cliente_nome,cliente_telefone,cliente_email,servico_id,
     data_agendamento,hora_agendamento,starts_at_utc,duracao_minutos,status,criado_em,atualizado_em,programado_em)
-    VALUES (?,?,?,1,?,?,?,30,?,?,?,?)`).run(name, '31988887777', overrides.email || 'cliente@example.com', date, time, startsAt, status, programmedAt, programmedAt, programmedAt);
+    VALUES (?,?,?,1,?,?,?,30,?,?,?,?)`
+    )
+    .run(
+      name,
+      '31988887777',
+      overrides.email || 'cliente@example.com',
+      date,
+      time,
+      startsAt,
+      status,
+      programmedAt,
+      programmedAt,
+      programmedAt
+    );
   return Number(result.lastInsertRowid);
 }
 
-test('lembretes de 24h e 3h são enviados uma vez e escapam o HTML do contato', async context => {
+test('lembretes de 24h e 3h são enviados uma vez e escapam o HTML do contato', async (context) => {
   const { db, messages, dispatchDueReminders } = setup(context);
   const dayBefore = insert(db, { hours: 24, name: '<img src=x onerror=alert(1)>' });
   const sameDay = insert(db);
   await Promise.all([dispatchDueReminders(), dispatchDueReminders()]);
   await dispatchDueReminders();
   assert.equal(messages.length, 2);
-  assert.ok(db.prepare('SELECT lembrete_24h_enviado_em FROM agendamentos WHERE id=?').get(dayBefore).lembrete_24h_enviado_em);
-  assert.ok(db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(sameDay).lembrete_3h_enviado_em);
-  const message = messages.find(item => item.subject.includes('está chegando'));
+  assert.ok(
+    db.prepare('SELECT lembrete_24h_enviado_em FROM agendamentos WHERE id=?').get(dayBefore)
+      .lembrete_24h_enviado_em
+  );
+  assert.ok(
+    db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(sameDay)
+      .lembrete_3h_enviado_em
+  );
+  const message = messages.find((item) => item.subject.includes('está chegando'));
   assert.doesNotMatch(message.html, /<img/);
   assert.match(message.html, /&lt;img/);
   assert.match(message.text, /até 2 horas antes/);
 });
 
-test('cancelados, reservas tardias e lembretes fora da janela não são enviados', async context => {
+test('cancelados, reservas tardias e lembretes fora da janela não são enviados', async (context) => {
   const { db, messages, dispatchDueReminders } = setup(context);
   insert(db, { status: 'cancelado' });
   insert(db, { leadHours: 2 });
@@ -55,34 +91,53 @@ test('cancelados, reservas tardias e lembretes fora da janela não são enviados
 });
 
 test('a janela inclui o instante previsto e exclui o limite de 15 minutos', () => {
-  const appointment = { starts_at_utc: new Date(NOW + 3 * HOUR_MS).toISOString(), programado_em: new Date(NOW - HOUR_MS).toISOString() };
+  const appointment = {
+    starts_at_utc: new Date(NOW + 3 * HOUR_MS).toISOString(),
+    programado_em: new Date(NOW - HOUR_MS).toISOString()
+  };
   assert.equal(shouldSendReminder(appointment, '3h', NOW), true);
   assert.equal(shouldSendReminder(appointment, '3h', NOW + 15 * 60_000 - 1), true);
   assert.equal(shouldSendReminder(appointment, '3h', NOW + 15 * 60_000), false);
   assert.equal(shouldSendReminder(appointment, '3h', NOW - 1), false);
 });
 
-test('uma falha do transporte mantém o lembrete pendente para a próxima tentativa', async context => {
+test('uma falha do transporte mantém o lembrete pendente para a próxima tentativa', async (context) => {
   let calls = 0;
-  const { db, messages, dispatchDueReminders } = setup(context, () => { if (++calls === 1) throw new Error('SMTP simulado indisponível'); });
+  const { db, messages, dispatchDueReminders } = setup(context, () => {
+    if (++calls === 1) throw new Error('SMTP simulado indisponível');
+  });
   const logs = [];
   context.mock.method(console, 'error', (...args) => logs.push(args));
   const id = insert(db);
   await dispatchDueReminders();
-  assert.equal(db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em, null);
+  assert.equal(
+    db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em,
+    null
+  );
   await dispatchDueReminders();
   assert.equal(messages.length, 2);
   assert.equal(logs.length, 1);
-  assert.ok(db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em);
+  assert.ok(
+    db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em
+  );
 });
 
-test('um agendamento cancelado durante o envio anterior é revalidado antes do próximo e-mail', async context => {
+test('um agendamento cancelado durante o envio anterior é revalidado antes do próximo e-mail', async (context) => {
   let release;
-  const waiting = new Promise(resolve => { release = resolve; });
+  const waiting = new Promise((resolve) => {
+    release = resolve;
+  });
   let notify;
-  const started = new Promise(resolve => { notify = resolve; });
+  const started = new Promise((resolve) => {
+    notify = resolve;
+  });
   let count = 0;
-  const { db, messages, dispatchDueReminders } = setup(context, async () => { if (++count === 1) { notify(); await waiting; } });
+  const { db, messages, dispatchDueReminders } = setup(context, async () => {
+    if (++count === 1) {
+      notify();
+      await waiting;
+    }
+  });
   insert(db);
   const cancelled = insert(db);
   const dispatch = dispatchDueReminders();
@@ -93,24 +148,40 @@ test('um agendamento cancelado durante o envio anterior é revalidado antes do p
   assert.equal(messages.length, 1);
 });
 
-test('remarcar durante o envio não marca o lembrete da nova programação como enviado', async context => {
+test('remarcar durante o envio não marca o lembrete da nova programação como enviado', async (context) => {
   let release;
-  const waiting = new Promise(resolve => { release = resolve; });
+  const waiting = new Promise((resolve) => {
+    release = resolve;
+  });
   let notify;
-  const started = new Promise(resolve => { notify = resolve; });
-  const { db, dispatchDueReminders } = setup(context, async () => { notify(); await waiting; });
+  const started = new Promise((resolve) => {
+    notify = resolve;
+  });
+  const { db, dispatchDueReminders } = setup(context, async () => {
+    notify();
+    await waiting;
+  });
   const id = insert(db);
   const dispatch = dispatchDueReminders();
   await started;
-  db.prepare('UPDATE agendamentos SET starts_at_utc=?,programado_em=? WHERE id=?').run(new Date(NOW + 27 * HOUR_MS).toISOString(), new Date(NOW).toISOString(), id);
+  db.prepare('UPDATE agendamentos SET starts_at_utc=?,programado_em=? WHERE id=?').run(
+    new Date(NOW + 27 * HOUR_MS).toISOString(),
+    new Date(NOW).toISOString(),
+    id
+  );
   release();
   await dispatch;
-  assert.equal(db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em, null);
+  assert.equal(
+    db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em,
+    null
+  );
 });
 
-test('o relógio é reavaliado após um envio lento para respeitar a janela dos próximos lembretes', async context => {
+test('o relógio é reavaliado após um envio lento para respeitar a janela dos próximos lembretes', async (context) => {
   let count = 0;
-  const runtime = setup(context, () => { if (++count === 1) runtime.advance(16 * 60_000); });
+  const runtime = setup(context, () => {
+    if (++count === 1) runtime.advance(16 * 60_000);
+  });
   insert(runtime.db);
   insert(runtime.db);
   await runtime.dispatchDueReminders();

@@ -12,10 +12,15 @@ async function init() {
   bindAdminArea();
   setupDateLimits();
   updateBookingStep();
-  try { await loadServices(); updateBookingSummary(); await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value); }
-  catch { showToast('Não foi possível carregar os serviços. Atualize a página em instantes.', 'error'); }
+  try {
+    await loadServices();
+    updateBookingSummary();
+    await loadAvailableSlots($('#appointmentDate').value, $('#serviceSelect').value);
+  } catch {
+    showToast('Não foi possível carregar os serviços. Atualize a página em instantes.', 'error');
+  }
   if (state.adminToken) {
-    // Token is session-scoped in the browser. The server remains the authority and will invalidate expired tokens.
+    // A sessão dura nesta aba; o servidor verifica a validade do token em cada requisição.
     setAdminView(true);
     loadAdminAppointments();
   }

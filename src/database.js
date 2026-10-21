@@ -1,6 +1,5 @@
 'use strict';
 
-
 const path = require('node:path');
 const fs = require('node:fs');
 const Database = require('better-sqlite3');
@@ -70,17 +69,23 @@ function createDatabase(config) {
   `);
 
   // Migração automática: remove o antigo código de confirmação sem apagar os agendamentos já salvos.
-  function appointmentColumns() { return db.prepare('PRAGMA table_info(agendamentos)').all().map(column => column.name); }
+  function appointmentColumns() {
+    return db
+      .prepare('PRAGMA table_info(agendamentos)')
+      .all()
+      .map((column) => column.name);
+  }
   const migratedFromCode = appointmentColumns().includes('confirmation_code');
   if (migratedFromCode) {
     const legacyColumns = new Set(appointmentColumns());
     // Somente nomes de colunas definidos pelo código entram nas expressões da migração.
-    const legacyValue = (column, fallback) => legacyColumns.has(column) ? column : fallback;
+    const legacyValue = (column, fallback) => (legacyColumns.has(column) ? column : fallback);
     const programmedAt = legacyColumns.has('programado_em')
       ? "COALESCE(NULLIF(trim(programado_em),''),atualizado_em,criado_em)"
       : 'COALESCE(atualizado_em,criado_em)';
     const migrateAppointments = db.transaction(() => {
-      const previousSequence = db.prepare("SELECT seq FROM sqlite_sequence WHERE name='agendamentos'").get()?.seq || 0;
+      const previousSequence =
+        db.prepare("SELECT seq FROM sqlite_sequence WHERE name='agendamentos'").get()?.seq || 0;
       db.exec(`DROP INDEX IF EXISTS idx_agendamentos_data; DROP INDEX IF EXISTS idx_agendamentos_telefone;
         DROP INDEX IF EXISTS idx_agendamentos_email;
         ALTER TABLE agendamentos RENAME TO agendamentos_com_codigo;
@@ -102,32 +107,84 @@ function createDatabase(config) {
   }
   // Garante as colunas de lembrete em bancos criados em versões intermediárias.
   const existingColumns = appointmentColumns();
-  if (!existingColumns.includes('lembrete_24h_enviado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_24h_enviado_em TEXT');
-  if (!existingColumns.includes('lembrete_3h_enviado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_3h_enviado_em TEXT');
-  if (!existingColumns.includes('programado_em')) db.exec('ALTER TABLE agendamentos ADD COLUMN programado_em TEXT');
-  if (!existingColumns.includes('telefone_whatsapp')) db.exec('ALTER TABLE agendamentos ADD COLUMN telefone_whatsapp INTEGER NOT NULL DEFAULT 0');
-  db.exec("UPDATE agendamentos SET programado_em = COALESCE(programado_em, atualizado_em, criado_em) WHERE programado_em IS NULL OR trim(programado_em) = ''");
+  if (!existingColumns.includes('lembrete_24h_enviado_em'))
+    db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_24h_enviado_em TEXT');
+  if (!existingColumns.includes('lembrete_3h_enviado_em'))
+    db.exec('ALTER TABLE agendamentos ADD COLUMN lembrete_3h_enviado_em TEXT');
+  if (!existingColumns.includes('programado_em'))
+    db.exec('ALTER TABLE agendamentos ADD COLUMN programado_em TEXT');
+  if (!existingColumns.includes('telefone_whatsapp'))
+    db.exec('ALTER TABLE agendamentos ADD COLUMN telefone_whatsapp INTEGER NOT NULL DEFAULT 0');
+  db.exec(
+    "UPDATE agendamentos SET programado_em = COALESCE(programado_em, atualizado_em, criado_em) WHERE programado_em IS NULL OR trim(programado_em) = ''"
+  );
   db.exec(`CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos(data_agendamento, hora_agendamento);
   CREATE INDEX IF NOT EXISTS idx_agendamentos_telefone ON agendamentos(cliente_telefone);
   CREATE INDEX IF NOT EXISTS idx_agendamentos_email ON agendamentos(cliente_email);`);
   // Pré-cadastra os clientes encontrados em agendamentos antigos que já tinham e-mail.
-  const backfillCustomers = db.prepare(`INSERT INTO clientes (cliente_nome,cliente_telefone,cliente_email,criado_em,atualizado_em) VALUES (?,?,?,?,?) ON CONFLICT(cliente_telefone,cliente_email) DO UPDATE SET cliente_nome=excluded.cliente_nome, atualizado_em=excluded.atualizado_em`);
-  for (const oldCustomer of db.prepare(`SELECT cliente_nome,cliente_telefone,cliente_email,MIN(criado_em) AS criado_em,MAX(atualizado_em) AS atualizado_em FROM agendamentos WHERE cliente_email IS NOT NULL AND trim(cliente_email) != '' GROUP BY cliente_telefone,cliente_email`).all()) {
-    backfillCustomers.run(oldCustomer.cliente_nome, oldCustomer.cliente_telefone, oldCustomer.cliente_email.toLowerCase(), oldCustomer.criado_em, oldCustomer.atualizado_em);
+  const backfillCustomers = db.prepare(
+    `INSERT INTO clientes (cliente_nome,cliente_telefone,cliente_email,criado_em,atualizado_em) VALUES (?,?,?,?,?) ON CONFLICT(cliente_telefone,cliente_email) DO UPDATE SET cliente_nome=excluded.cliente_nome, atualizado_em=excluded.atualizado_em`
+  );
+  for (const oldCustomer of db
+    .prepare(
+      `SELECT cliente_nome,cliente_telefone,cliente_email,MIN(criado_em) AS criado_em,MAX(atualizado_em) AS atualizado_em FROM agendamentos WHERE cliente_email IS NOT NULL AND trim(cliente_email) != '' GROUP BY cliente_telefone,cliente_email`
+    )
+    .all()) {
+    backfillCustomers.run(
+      oldCustomer.cliente_nome,
+      oldCustomer.cliente_telefone,
+      oldCustomer.cliente_email.toLowerCase(),
+      oldCustomer.criado_em,
+      oldCustomer.atualizado_em
+    );
   }
   // Remove a tabela legada de tentativas: a consulta do cliente não usa bloqueio por telefone.
   db.exec('DROP TABLE IF EXISTS login_attempts');
 
-  const seed = db.prepare(`INSERT INTO servicos (id,nome,preco_cents,duracao_minutos,descricao) VALUES (@id,@nome,@preco_cents,@duracao_minutos,@descricao) ON CONFLICT(id) DO NOTHING`);
+  const seed = db.prepare(
+    `INSERT INTO servicos (id,nome,preco_cents,duracao_minutos,descricao) VALUES (@id,@nome,@preco_cents,@duracao_minutos,@descricao) ON CONFLICT(id) DO NOTHING`
+  );
   [
-    { id: 1, nome: 'Corte de cabelo', preco_cents: 5000, duracao_minutos: 30, descricao: 'Corte na régua, do clássico ao moderno.' },
-    { id: 2, nome: 'Barba', preco_cents: 3500, duracao_minutos: 20, descricao: 'Acabamento preciso e cuidado nos detalhes.' },
-    { id: 3, nome: 'Sobrancelha', preco_cents: 2000, duracao_minutos: 15, descricao: 'Design limpo e natural para valorizar o olhar.' },
-    { id: 4, nome: 'Pintura capilar', preco_cents: 8000, duracao_minutos: 60, descricao: 'Cor uniforme com atenção ao acabamento.' },
-    { id: 5, nome: 'Combo corte + barba', preco_cents: 7500, duracao_minutos: 45, descricao: 'Visual renovado: corte e barba no mesmo atendimento.' }
-  ].forEach(service => seed.run(service));
+    {
+      id: 1,
+      nome: 'Corte de cabelo',
+      preco_cents: 5000,
+      duracao_minutos: 30,
+      descricao: 'Corte na régua, do clássico ao moderno.'
+    },
+    {
+      id: 2,
+      nome: 'Barba',
+      preco_cents: 3500,
+      duracao_minutos: 20,
+      descricao: 'Acabamento preciso e cuidado nos detalhes.'
+    },
+    {
+      id: 3,
+      nome: 'Sobrancelha',
+      preco_cents: 2000,
+      duracao_minutos: 15,
+      descricao: 'Design limpo e natural para valorizar o olhar.'
+    },
+    {
+      id: 4,
+      nome: 'Pintura capilar',
+      preco_cents: 8000,
+      duracao_minutos: 60,
+      descricao: 'Cor uniforme com atenção ao acabamento.'
+    },
+    {
+      id: 5,
+      nome: 'Combo corte + barba',
+      preco_cents: 7500,
+      duracao_minutos: 45,
+      descricao: 'Visual renovado: corte e barba no mesmo atendimento.'
+    }
+  ].forEach((service) => seed.run(service));
   const adminHash = bcrypt.hashSync(ADMIN_PASSWORD, 12);
-  db.prepare(`INSERT INTO admin (id,email,senha_hash) VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email, senha_hash=excluded.senha_hash`).run(ADMIN_EMAIL, adminHash);
+  db.prepare(
+    `INSERT INTO admin (id,email,senha_hash) VALUES (1,?,?) ON CONFLICT(id) DO UPDATE SET email=excluded.email, senha_hash=excluded.senha_hash`
+  ).run(ADMIN_EMAIL, adminHash);
 
   return db;
 }

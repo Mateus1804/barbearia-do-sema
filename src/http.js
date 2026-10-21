@@ -8,7 +8,15 @@ class HttpError extends Error {
   }
 }
 
-function catchRoute(handler) { return async (req, res, next) => { try { await handler(req, res, next); } catch (error) { next(error); } }; }
+function catchRoute(handler) {
+  return async (req, res, next) => {
+    try {
+      await handler(req, res, next);
+    } catch (error) {
+      next(error);
+    }
+  };
+}
 
 // Rota de remoção por id; `table` é sempre uma constante do código (nunca vem do usuário).
 function deleteById(db, table, notFoundMessage, successMessage) {
@@ -26,7 +34,9 @@ function handleError(err, req, res, next) {
   let message = err.message;
   if (err.type === 'entity.parse.failed') message = 'Envie um JSON válido.';
   if (err.type === 'entity.too.large') message = 'O conteúdo enviado excede o limite de 40 KB.';
-  res.status(status).json({ error: status >= 500 ? 'Ocorreu um erro inesperado. Tente novamente.' : message });
+  res
+    .status(status)
+    .json({ error: status >= 500 ? 'Ocorreu um erro inesperado. Tente novamente.' : message });
 }
 
 module.exports = { HttpError, catchRoute, deleteById, handleError };

@@ -14,8 +14,13 @@ const state = {
 };
 
 function localDateString(date = new Date()) {
-  const p = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(date);
-  const obj = Object.fromEntries(p.map(x => [x.type, x.value]));
+  const p = new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const obj = Object.fromEntries(p.map((x) => [x.type, x.value]));
   return `${obj.year}-${obj.month}-${obj.day}`;
 }
 function addDays(dateStr, count) {
@@ -26,14 +31,30 @@ function addDays(dateStr, count) {
 function formatDate(dateStr, includeYear = true) {
   if (!dateStr) return '—';
   const [y, m, d] = dateStr.split('-').map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', ...(includeYear ? { year: 'numeric' } : {}) });
+  return new Date(y, m - 1, d).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    ...(includeYear ? { year: 'numeric' } : {})
+  });
 }
-function money(value) { return Number(value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }); }
+function money(value) {
+  return Number(value || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    maximumFractionDigits: 0
+  });
+}
 function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+  return String(value ?? '').replace(
+    /[&<>"']/g,
+    (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]
+  );
 }
 async function api(url, options = {}) {
-  const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
+  const headers = {
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...(options.headers || {})
+  };
   let response;
   try {
     response = await fetch(url, { ...options, headers });
@@ -76,8 +97,14 @@ function closeModal(id) {
   document.getElementById(id)?.classList.add('hidden');
   if (!$('.modal-backdrop:not(.hidden)')) document.body.style.overflow = '';
 }
-function phoneDigits(value) { let n = String(value || '').replace(/\D/g, ''); if ((n.length === 12 || n.length === 13) && n.startsWith('55')) n = n.slice(2); return n; }
-function normalizeCustomerPhone(value) { return BookingRules.canonicalPhone(value); }
+function phoneDigits(value) {
+  let n = String(value || '').replace(/\D/g, '');
+  if ((n.length === 12 || n.length === 13) && n.startsWith('55')) n = n.slice(2);
+  return n;
+}
+function normalizeCustomerPhone(value) {
+  return BookingRules.canonicalPhone(value);
+}
 // Máscara (31) 99999-8888 enquanto digita; números internacionais (com +) ficam como o cliente digitou.
 function maskBrazilianPhone(input) {
   if (input.value.trim().startsWith('+')) return;
@@ -90,35 +117,48 @@ function maskBrazilianPhone(input) {
 // Dia sugerido ao abrir o formulário: o próximo dia em que a barbearia abre (nunca domingo).
 function firstBookableDate(from = localDateString()) {
   let date = addDays(from, 1);
-  const weekday = d => new Date(`${d}T12:00:00Z`).getUTCDay();
+  const weekday = (d) => new Date(`${d}T12:00:00Z`).getUTCDay();
   while (weekday(date) === 0) date = addDays(date, 1);
   return date;
 }
-function getService(id) { return state.services.find(s => Number(s.id) === Number(id)); }
+function getService(id) {
+  return state.services.find((s) => Number(s.id) === Number(id));
+}
 
 async function loadServices() {
   const services = await api('/api/services');
   state.services = services;
-  const serviceOptions = '<option value="">Selecione um serviço</option>' + services.map(s => `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`).join('');
+  const serviceOptions =
+    '<option value="">Selecione um serviço</option>' +
+    services
+      .map(
+        (s) =>
+          `<option value="${s.id}">${escapeHtml(s.nome)} — ${money(s.preco)} · ${s.duracao_minutos} min</option>`
+      )
+      .join('');
   $('#serviceSelect').innerHTML = serviceOptions;
   $('#adminBookingService').innerHTML = serviceOptions;
-  const timeLabel = mins => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-  const timeOptions = firstMinute => Array.from({ length: 21 }, (_, i) => {
-    const time = timeLabel(firstMinute + i * 30);
-    return `<option value="${time}">${time}</option>`;
-  }).join('');
+  const timeLabel = (mins) =>
+    `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  const timeOptions = (firstMinute) =>
+    Array.from({ length: 21 }, (_, i) => {
+      const time = timeLabel(firstMinute + i * 30);
+      return `<option value="${time}">${time}</option>`;
+    }).join('');
   $('#blockTime').innerHTML = timeOptions(9 * 60);
   $('#blockEndTime').innerHTML = '<option value="">Selecione o fim</option>' + timeOptions(9 * 60 + 30);
 }
 function setupDateLimits() {
   const today = localDateString();
   const maxDate = addDays(today, 30);
-  ['appointmentDate', 'adminFrom', 'adminTo', 'blockDate', 'holidayDate', 'adminBookingDate'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.min = today;
-    el.max = maxDate;
-  });
+  ['appointmentDate', 'adminFrom', 'adminTo', 'blockDate', 'holidayDate', 'adminBookingDate'].forEach(
+    (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.min = today;
+      el.max = maxDate;
+    }
+  );
   // Hoje continua selecionável (o servidor aceita até 10 min de antecedência), mas o formulário abre no próximo dia útil.
   $('#appointmentDate').value = firstBookableDate(today);
   $('#adminFrom').value = localDateString();
@@ -130,4 +170,25 @@ function setupDateLimits() {
   $('#holidayDate').max = '';
 }
 
-export { $, $$, BookingRules, state, localDateString, addDays, formatDate, money, escapeHtml, api, showToast, setBusy, openModal, closeModal, normalizeCustomerPhone, maskBrazilianPhone, firstBookableDate, getService, loadServices, setupDateLimits };
+export {
+  $,
+  $$,
+  BookingRules,
+  state,
+  localDateString,
+  addDays,
+  formatDate,
+  money,
+  escapeHtml,
+  api,
+  showToast,
+  setBusy,
+  openModal,
+  closeModal,
+  normalizeCustomerPhone,
+  maskBrazilianPhone,
+  firstBookableDate,
+  getService,
+  loadServices,
+  setupDateLimits
+};

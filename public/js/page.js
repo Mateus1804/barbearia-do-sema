@@ -1,7 +1,8 @@
 import { $, $$, closeModal } from './core.js';
 
 function setupScrollAnimations() {
-  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+    return;
   const selectors = [
     '.quick-facts .fact',
     '.services-section .section-heading',
@@ -16,17 +17,20 @@ function setupScrollAnimations() {
     '.final-cta-inner',
     '.site-footer .footer-main'
   ];
-  const elements = selectors.flatMap(selector => $$(selector));
+  const elements = selectors.flatMap((selector) => $$(selector));
   if (!elements.length) return;
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('motion-in');
-      observer.unobserve(entry.target);
-    });
-  }, { rootMargin: '0px 0px -7% 0px', threshold: 0.12 });
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('motion-in');
+        observer.unobserve(entry.target);
+      });
+    },
+    { rootMargin: '0px 0px -7% 0px', threshold: 0.12 }
+  );
 
-  elements.forEach(element => {
+  elements.forEach((element) => {
     element.classList.add('motion-reveal');
     if (element.classList.contains('service-card')) {
       const siblings = [...element.parentElement.querySelectorAll('.service-card')];
@@ -46,10 +50,21 @@ function bindPageChrome() {
     const open = $('#mainNav').classList.toggle('open');
     $('#menuToggle').setAttribute('aria-expanded', String(open));
   });
-  $$('#mainNav a').forEach(a => a.addEventListener('click', () => { $('#mainNav').classList.remove('open'); $('#menuToggle').setAttribute('aria-expanded', 'false'); }));
-  $$('[data-close]').forEach(btn => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
-  $$('.modal-backdrop').forEach(modal => modal.addEventListener('click', e => { if (e.target === modal) closeModal(modal.id); }));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') $$('.modal-backdrop:not(.hidden)').forEach(m => closeModal(m.id)); });
+  $$('#mainNav a').forEach((a) =>
+    a.addEventListener('click', () => {
+      $('#mainNav').classList.remove('open');
+      $('#menuToggle').setAttribute('aria-expanded', 'false');
+    })
+  );
+  $$('[data-close]').forEach((btn) => btn.addEventListener('click', () => closeModal(btn.dataset.close)));
+  $$('.modal-backdrop').forEach((modal) =>
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal(modal.id);
+    })
+  );
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') $$('.modal-backdrop:not(.hidden)').forEach((m) => closeModal(m.id));
+  });
 }
 
 export { bindPageChrome };

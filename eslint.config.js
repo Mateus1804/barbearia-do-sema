@@ -21,14 +21,21 @@ module.exports = [
     files: ['public/booking-rules.js'],
     languageOptions: {
       sourceType: 'script',
-      globals: { ...Object.fromEntries(Object.keys(globals.node).map(name => [name, 'off'])), ...globals.browser, module: 'readonly' }
+      globals: {
+        ...Object.fromEntries(Object.keys(globals.node).map((name) => [name, 'off'])),
+        ...globals.browser,
+        module: 'readonly'
+      }
     }
   },
   {
     files: ['public/app.js', 'public/js/**/*.js'],
     languageOptions: {
       sourceType: 'module',
-      globals: { ...Object.fromEntries(Object.keys(globals.node).map(name => [name, 'off'])), ...globals.browser }
+      globals: {
+        ...Object.fromEntries(Object.keys(globals.node).map((name) => [name, 'off'])),
+        ...globals.browser
+      }
     }
   },
   {
