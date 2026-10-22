@@ -1,103 +1,1162 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#171916" />
-  <meta name="description" content="Agende seu corte na Barbearia do Semá, em Itacolomi, Sabará. Atendimento de segunda a sábado, das 9h às 19h30." />
-  <title>Barbearia do Semá — Seu estilo, no capricho.</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
-</head>
-<body>
-  <div class="announcement"><span class="announcement-dot"></span> Atendimento de segunda a sábado <span class="announcement-divider">/</span> <strong>09h às 19h30</strong></div>
-  <header class="site-header" id="topo">
-    <a class="brand" href="#topo" aria-label="Barbearia do Semá - início">
-      <span class="brand-mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 10l26 28M37 10L11 38M15 13l18 22M33 13L15 35"/><circle cx="11" cy="10" r="4"/><circle cx="37" cy="10" r="4"/><circle cx="11" cy="38" r="4"/><circle cx="37" cy="38" r="4"/></svg></span>
-      <span class="brand-copy"><span class="brand-name">BARBEARIA <b>DO SEMÁ</b></span><span class="brand-tagline">TRADIÇÃO EM CADA DETALHE</span></span>
-    </a>
-    <button class="menu-toggle" id="menuToggle" aria-label="Abrir menu" aria-expanded="false"><span></span><span></span></button>
-    <nav class="main-nav" id="mainNav">
-      <a href="#servicos">Serviços</a><a href="#sobre">A barbearia</a><a href="#localizacao">Onde estamos</a>
-      <button class="nav-login" id="openMyAppointments">Meus horários <span aria-hidden="true">↗</span></button>
-      <a class="button button-small button-gold" href="#agendar">Agendar agora <span aria-hidden="true">↗</span></a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="hero-photo" role="img" aria-label="Interior aconchegante de uma barbearia tradicional"></div>
-      <div class="hero-shade"></div>
-      <div class="hero-content wrap">
-        <p class="eyebrow"><span></span> SABARÁ · MINAS GERAIS</p>
-        <h1>Seu estilo.<br />No <em>capricho.</em></h1>
-        <p class="hero-text">Mais que um corte, aquele cuidado que faz diferença. Chega mais, escolhe teu horário e deixa o resto com a gente.</p>
-        <div class="hero-actions"><a class="button button-gold" href="#agendar">Escolher meu horário <span aria-hidden="true">↗</span></a><a class="text-link light-link" href="#servicos">Conhecer os serviços <span aria-hidden="true">↓</span></a></div>
-        <div class="hero-proof"><div class="proof-symbol">✳</div><div><strong>Seu momento, seu estilo.</strong><span>Atendimento próximo e sem correria.</span></div></div>
-      </div>
-      <div class="hero-side-label">CORTE · BARBA · ESTILO</div>
-      <a class="scroll-cue" href="#servicos" aria-label="Rolar para os serviços"><span></span> ROLE PARA DESCOBRIR</a>
-    </section>
-
-    <section class="quick-facts wrap" aria-label="Informações rápidas">
-      <div class="fact"><span class="fact-icon" aria-hidden="true">◷</span><div><small>FUNCIONAMENTO</small><strong>Seg–Sáb · 09h–19h30</strong></div></div>
-      <div class="fact"><span class="fact-icon" aria-hidden="true">⌖</span><div><small>NO CORAÇÃO DE SABARÁ</small><strong>Itacolomi, Rua Tiradentes</strong></div></div>
-      <div class="fact"><span class="fact-icon" aria-hidden="true">✂</span><div><small>NA MEDIDA PRA VOCÊ</small><strong>Horário marcado, sem complicação</strong></div></div>
-    </section>
-
-    <section class="section services-section" id="servicos">
-      <div class="wrap">
-        <div class="section-heading centered"><p class="eyebrow dark-eyebrow">UM BOM VISUAL COMEÇA AQUI</p><h2>Escolha seu <em>serviço.</em></h2><p>Cuidados bem feitos, do primeiro fio ao acabamento final.</p></div>
-        <div class="services-grid" id="servicesGrid">
-          <article class="service-card"><div class="service-top"><span class="service-number">01</span><span class="service-icon" aria-hidden="true">✂</span></div><h3>Corte de cabelo</h3><p>Corte na régua, do clássico ao moderno.</p><div class="service-bottom"><span>30 min</span><strong>R$ 50</strong></div><button class="service-book" data-service="1">Agendar corte <span>↗</span></button></article>
-          <article class="service-card"><div class="service-top"><span class="service-number">02</span><span class="service-icon" aria-hidden="true">〰</span></div><h3>Barba</h3><p>Acabamento preciso e cuidado nos detalhes.</p><div class="service-bottom"><span>20 min</span><strong>R$ 35</strong></div><button class="service-book" data-service="2">Agendar barba <span>↗</span></button></article>
-          <article class="service-card"><div class="service-top"><span class="service-number">03</span><span class="service-icon" aria-hidden="true">◉</span></div><h3>Sobrancelha</h3><p>Design limpo e natural para valorizar o olhar.</p><div class="service-bottom"><span>15 min</span><strong>R$ 20</strong></div><button class="service-book" data-service="3">Agendar serviço <span>↗</span></button></article>
-          <article class="service-card"><div class="service-top"><span class="service-number">04</span><span class="service-icon" aria-hidden="true">✦</span></div><h3>Pintura capilar</h3><p>Cor uniforme com atenção ao acabamento.</p><div class="service-bottom"><span>60 min</span><strong>R$ 80</strong></div><button class="service-book" data-service="4">Agendar pintura <span>↗</span></button></article>
-          <article class="service-card service-card-featured"><div class="featured-ribbon">QUERIDINHO</div><div class="service-top"><span class="service-number">05</span><span class="service-icon" aria-hidden="true">✂+</span></div><h3>Combo corte + barba</h3><p>Visual renovado, tudo no mesmo atendimento.</p><div class="service-bottom"><span>45 min</span><strong>R$ 75</strong></div><button class="service-book" data-service="5">Agendar combo <span>↗</span></button></article>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#171916" />
+    <meta
+      name="description"
+      content="Agende seu corte na Barbearia do Semá, em Itacolomi, Sabará. Atendimento de segunda a sábado, das 9h às 19h30."
+    />
+    <title>Barbearia do Semá — Seu estilo, no capricho.</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="preload" as="image" href="/images/barba-detalhe.webp" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+      <symbol id="icon-scissors" viewBox="0 0 24 24">
+        <circle cx="6" cy="6" r="3" />
+        <circle cx="6" cy="18" r="3" />
+        <path d="m8.2 8.2 11.3 11.3M14 10l5.5-5.5M8.2 15.8 12 12" />
+      </symbol>
+      <symbol id="icon-razor" viewBox="0 0 24 24">
+        <path d="m4 5 12 0 4 4-7 7-9-9Z M11 14l-6 7-2-2 6-7 M14 5l4 4M6 7l6 6" />
+      </symbol>
+      <symbol id="icon-comb" viewBox="0 0 24 24">
+        <path d="M4 6h16v12H4z M7 6v7M10 6v7M13 6v7M16 6v7M19 6v7" />
+      </symbol>
+      <symbol id="icon-sparkles" viewBox="0 0 24 24">
+        <path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7L12 3ZM20 3v4M18 5h4" />
+      </symbol>
+      <symbol id="icon-clock" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3.5 2" />
+      </symbol>
+      <symbol id="icon-pin" viewBox="0 0 24 24">
+        <path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" />
+        <circle cx="12" cy="10" r="2.5" />
+      </symbol>
+      <symbol id="icon-phone" viewBox="0 0 24 24">
+        <path d="m6 3 4 4-2 3a15 15 0 0 0 6 6l3-2 4 4-2 3C11 21 3 13 3 5Z" />
+      </symbol>
+      <symbol id="icon-calendar" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M7 3v4M17 3v4M3 10h18M7 14h2M12 14h2M7 17h2" />
+      </symbol>
+      <symbol id="icon-arrow-up" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12" /></symbol>
+      <symbol id="icon-arrow-right" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6" /></symbol>
+      <symbol id="icon-arrow-down" viewBox="0 0 24 24"><path d="M12 4v16m-6-6 6 6 6-6" /></symbol>
+      <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="icon-chevron-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7" /></symbol>
+      <symbol id="icon-chevron-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+      <symbol id="icon-check-circle" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12 3 3 5-6" />
+      </symbol>
+      <symbol id="icon-mail" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="m3 7 9 6 9-6" />
+      </symbol>
+      <symbol id="icon-user" viewBox="0 0 24 24">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21v-2a8 8 0 0 1 16 0v2" />
+      </symbol>
+      <symbol id="icon-tv" viewBox="0 0 24 24">
+        <rect x="3" y="5" width="18" height="13" rx="2" />
+        <path d="M8 22h8M12 18v4" />
+      </symbol>
+      <symbol id="icon-snowflake" viewBox="0 0 24 24">
+        <path
+          d="M12 2v20M3.3 7l17.4 10M3.3 17 20.7 7M9 4l3 3 3-3M9 20l3-3 3 3M3 10l4-1-1-4M18 19l-1-4 4-1M3 14l4 1-1 4M18 5l-1 4 4 1"
+        />
+      </symbol>
+      <symbol id="icon-bag" viewBox="0 0 24 24">
+        <path d="M5 7h14l2 14H3L5 7ZM8 7V6a4 4 0 0 1 8 0v1" />
+      </symbol>
+      <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6" /></symbol>
+      <symbol id="icon-expand" viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" /></symbol>
+      <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+      <symbol id="icon-image" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="8" cy="8" r="1.5" />
+        <path d="m21 15-5-5L5 21" />
+      </symbol>
+      <symbol id="icon-child" viewBox="0 0 24 24">
+        <circle cx="12" cy="5" r="2" />
+        <path d="M5 10h14M12 7v7m0 0-5 7m5-7 5 7" />
+      </symbol>
+      <symbol id="icon-lock" viewBox="0 0 24 24">
+        <rect x="5" y="10" width="14" height="11" rx="2" />
+        <path d="M8 10V6a4 4 0 0 1 8 0v4M12 14v3" />
+      </symbol>
+    </svg>
+    <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+    <div class="announcement">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <use href="#icon-clock"></use></svg
+      ><span>Segunda a sábado · 09h às 19h30</span
+      ><span class="announcement-location"
+        ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#icon-pin"></use>
+        </svg>
+        Itacolomi, Sabará</span
+      >
+    </div>
+    <header class="site-header" id="topo">
+      <a class="brand" href="#topo" aria-label="Barbearia do Semá - início"
+        ><span class="brand-mark"
+          ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#icon-scissors"></use></svg></span
+        ><span class="brand-copy"
+          ><span class="brand-name">BARBEARIA <b>DO SEMÁ</b></span
+          ><span class="brand-tagline">SEU ESTILO, NO CAPRICHO.</span></span
+        ></a
+      >
+      <button
+        class="menu-toggle"
+        id="menuToggle"
+        type="button"
+        aria-label="Abrir menu"
+        aria-expanded="false"
+        aria-controls="mainNav"
+      >
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#icon-menu"></use>
+        </svg>
+      </button>
+      <nav class="main-nav" id="mainNav" aria-label="Navegação principal">
+        <a href="#servicos">Serviços</a><a href="#sobre">A experiência</a><a href="#galeria">Galeria</a
+        ><a href="#localizacao">Onde estamos</a>
+        <button class="nav-login" id="openMyAppointments" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#icon-user"></use>
+          </svg>
+          Meus horários
+        </button>
+        <a class="button button-small button-gold" href="#agendar"
+          >Agendar agora
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#icon-arrow-up"></use></svg
+        ></a>
+      </nav>
+    </header>
+    <main id="conteudo">
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="wrap hero-grid">
+          <div class="hero-content">
+            <p class="eyebrow"><span></span> MAIS QUE UM CORTE. UM CUIDADO.</p>
+            <h1 id="heroTitle">
+              Seu estilo.<br /><span class="hero-line">No <em>capricho.</em></span>
+            </h1>
+            <p class="hero-text">
+              Corte, barba e aquele cuidado que faz diferença. Um encontro com a sua melhor versão, aqui em
+              Itacolomi.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-gold" href="#agendar"
+                >Reservar meu horário
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use></svg></a
+              ><a class="text-link light-link" href="#servicos"
+                >Conhecer os serviços
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-right"></use></svg
+              ></a>
+            </div>
+            <div class="hero-proof">
+              <span class="proof-symbol"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-scissors"></use></svg
+              ></span>
+              <div>
+                <strong>O seu momento, do seu jeito.</strong
+                ><span>Horário marcado. Atendimento próximo. Cuidado nos detalhes.</span>
+              </div>
+            </div>
+            <a class="scroll-cue" href="#servicos"
+              ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#icon-arrow-down"></use>
+              </svg>
+              CONHEÇA A BARBEARIA</a
+            >
+          </div>
+          <div class="hero-media">
+            <div class="hero-photo-frame">
+              <img
+                class="hero-photo"
+                src="/images/barba-detalhe.webp"
+                alt="Barbeiro finalizando uma barba com tesoura, em imagem ilustrativa"
+                width="1000"
+                height="1500"
+                fetchpriority="high"
+                decoding="async"
+              />
+            </div>
+            <div class="hero-detail-photo">
+              <img
+                src="/images/ferramentas-barbearia.webp"
+                alt="Tesouras, pentes e máquina de corte em uma bancada"
+                width="1100"
+                height="879"
+                decoding="async"
+              /><span>É NO DETALHE<br /><strong>que faz diferença.</strong></span>
+            </div>
+            <div class="hero-signature">BARBEARIA DO SEMÁ <span>ESTILO & CUIDADO</span></div>
+            <span class="hero-photo-credit">FOTOGRAFIA ILUSTRATIVA</span>
+          </div>
         </div>
-        <p class="service-footnote"><span>✳</span> Também fazemos cortes infantis, luzes e descoloração. Consulte valores e agende esses serviços pelo WhatsApp. Temos gel, pentes e pomadas à venda para manter seu estilo em casa.</p>
+      </section>
+      <section class="quick-facts wrap" aria-label="Informações rápidas">
+        <div class="fact">
+          <span class="fact-icon"
+            ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-clock"></use></svg
+          ></span>
+          <div><small>NO SEU TEMPO</small><strong>Seg–Sáb · 09h–19h30</strong></div>
+        </div>
+        <div class="fact">
+          <span class="fact-icon"
+            ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-pin"></use></svg
+          ></span>
+          <div><small>PERTINHO DE VOCÊ</small><strong>Itacolomi · Sabará, MG</strong></div>
+        </div>
+        <div class="fact">
+          <span class="fact-icon"
+            ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-calendar"></use></svg
+          ></span>
+          <div><small>SIMPLES DE AGENDAR</small><strong>Escolha, reserve e venha</strong></div>
+        </div>
+      </section>
+      <section class="section services-section" id="servicos">
+        <div class="wrap">
+          <div class="section-heading centered">
+            <p class="eyebrow dark-eyebrow">CUIDADO QUE COMBINA COM VOCÊ</p>
+            <h2>Seu próximo <em>visual.</em></h2>
+            <p>
+              Do corte de sempre à vontade de mudar.<br />Escolha o serviço e deixe o capricho com a gente.
+            </p>
+          </div>
+          <div class="services-grid" id="servicesGrid">
+            <article class="service-card">
+              <div class="service-top">
+                <span class="service-number">01</span
+                ><span class="service-icon"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-scissors"></use></svg
+                ></span>
+              </div>
+              <h3>Corte de cabelo</h3>
+              <p>Do clássico ao moderno, um corte que respeita o seu estilo.</p>
+              <div class="service-bottom">
+                <span class="service-duration"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-clock"></use></svg
+                  >30 min</span
+                ><strong><small>R$</small> 50</strong>
+              </div>
+              <button class="service-book" type="button" data-service="1">
+                Agendar corte<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use>
+                </svg>
+              </button>
+            </article>
+            <article class="service-card">
+              <div class="service-top">
+                <span class="service-number">02</span
+                ><span class="service-icon"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-razor"></use></svg
+                ></span>
+              </div>
+              <h3>Barba</h3>
+              <p>Desenho, alinhamento e acabamento nos detalhes.</p>
+              <div class="service-bottom">
+                <span class="service-duration"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-clock"></use></svg
+                  >20 min</span
+                ><strong><small>R$</small> 35</strong>
+              </div>
+              <button class="service-book" type="button" data-service="2">
+                Agendar barba<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use>
+                </svg>
+              </button>
+            </article>
+            <article class="service-card">
+              <div class="service-top">
+                <span class="service-number">03</span
+                ><span class="service-icon"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-sparkles"></use></svg
+                ></span>
+              </div>
+              <h3>Sobrancelha</h3>
+              <p>Um cuidado sutil que faz diferença no seu visual.</p>
+              <div class="service-bottom">
+                <span class="service-duration"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-clock"></use></svg
+                  >15 min</span
+                ><strong><small>R$</small> 20</strong>
+              </div>
+              <button class="service-book" type="button" data-service="3">
+                Agendar sobrancelha<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use>
+                </svg>
+              </button>
+            </article>
+            <article class="service-card">
+              <div class="service-top">
+                <span class="service-number">04</span
+                ><span class="service-icon"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-comb"></use></svg
+                ></span>
+              </div>
+              <h3>Pintura capilar</h3>
+              <p>Uma nova cor, com atenção do início ao acabamento.</p>
+              <div class="service-bottom">
+                <span class="service-duration"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-clock"></use></svg
+                  >60 min</span
+                ><strong><small>R$</small> 80</strong>
+              </div>
+              <button class="service-book" type="button" data-service="4">
+                Agendar pintura<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use>
+                </svg>
+              </button>
+            </article>
+            <article class="service-card service-card-featured">
+              <span class="featured-ribbon">O COMBO COMPLETO</span>
+              <div class="service-top">
+                <span class="service-number">05</span
+                ><span class="service-icon"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-scissors"></use></svg
+                ></span>
+              </div>
+              <h3>Corte + barba</h3>
+              <p>O cuidado completo para renovar o visual em uma só visita.</p>
+              <div class="service-bottom">
+                <span class="service-duration"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-clock"></use></svg
+                  >45 min</span
+                ><strong><small>R$</small> 75</strong>
+              </div>
+              <button class="service-book" type="button" data-service="5">
+                Agendar combo<svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use>
+                </svg>
+              </button>
+            </article>
+          </div>
+          <p class="services-footnote">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-sparkles"></use>
+            </svg>
+            Também fazemos cortes infantis, luzes e descoloração. Fale com a gente para saber mais.
+          </p>
+        </div>
+      </section>
+      <section class="about-section section" id="sobre">
+        <div class="wrap about-layout">
+          <div class="about-image">
+            <img
+              class="about-image-main"
+              src="/images/ambiente-barbearia.webp"
+              alt="Cadeira clássica de barbearia diante de um espelho, em fotografia ilustrativa"
+              width="1400"
+              height="2100"
+              loading="lazy"
+              decoding="async"
+            />
+            <div class="about-stamp">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#icon-scissors"></use></svg
+              ><strong>NO CAPRICHO.</strong><small>EM CADA DETALHE.</small>
+            </div>
+          </div>
+          <div class="about-copy">
+            <p class="eyebrow dark-eyebrow">BOM PAPO. BOM CORTE.</p>
+            <h2>Um cuidado<br />que vai <em>além.</em></h2>
+            <p>
+              A Barbearia do Semá é aquele lugar onde você chega para cuidar do visual e sai se sentindo bem.
+              Atendimento próximo, conversa boa e atenção ao seu estilo.
+            </p>
+            <p>Um momento para desacelerar, renovar o visual e seguir o dia com mais confiança.</p>
+            <div class="experience-grid">
+              <div>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-snowflake"></use></svg
+                ><span>Ambiente<br /><strong>climatizado</strong></span>
+              </div>
+              <div>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-tv"></use></svg
+                ><span>Smart TV para<br /><strong>relaxar</strong></span>
+              </div>
+              <div>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-child"></use></svg
+                ><span>Cuidado também<br /><strong>com os pequenos</strong></span>
+              </div>
+              <div>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-bag"></use></svg
+                ><span>Produtos para<br /><strong>o seu dia a dia</strong></span>
+              </div>
+            </div>
+            <a class="text-link dark-text-link" href="#agendar"
+              >Seu próximo cuidado começa aqui
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#icon-arrow-up"></use></svg
+            ></a>
+          </div>
+        </div>
+      </section>
+      <section class="gallery-section section" id="galeria">
+        <div class="wrap">
+          <div class="gallery-heading">
+            <div>
+              <p class="eyebrow dark-eyebrow">UM OLHAR MAIS DE PERTO</p>
+              <h2>A arte está<br />nos <em>detalhes.</em></h2>
+            </div>
+            <p>Texturas, precisão e o ritual de cuidar.<br />Inspirações do universo da barbearia.</p>
+          </div>
+          <div class="gallery-grid">
+            <button
+              class="gallery-card gallery-tall"
+              type="button"
+              data-gallery-image="/images/barba-detalhe.webp"
+              data-gallery-caption="O cuidado no acabamento"
+              aria-label="Ampliar foto: O cuidado no acabamento"
+            >
+              <img
+                src="/images/barba-detalhe.webp"
+                width="1000"
+                height="1400"
+                alt="Barbeiro aparando uma barba com tesoura"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="gallery-caption"
+                ><span>O cuidado no acabamento</span
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-expand"></use></svg
+              ></span></button
+            ><button
+              class="gallery-card"
+              type="button"
+              data-gallery-image="/images/ambiente-barbearia.webp"
+              data-gallery-caption="O clássico tem seu lugar"
+              aria-label="Ampliar foto: O clássico tem seu lugar"
+            >
+              <img
+                src="/images/ambiente-barbearia.webp"
+                width="1000"
+                height="1400"
+                alt="Cadeira de couro marrom diante de um espelho de barbearia"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="gallery-caption"
+                ><span>O clássico tem seu lugar</span
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-expand"></use></svg
+              ></span></button
+            ><button
+              class="gallery-card"
+              type="button"
+              data-gallery-image="/images/ferramentas-barbearia.webp"
+              data-gallery-caption="Detalhes do ofício"
+              aria-label="Ampliar foto: Detalhes do ofício"
+            >
+              <img
+                src="/images/ferramentas-barbearia.webp"
+                width="1000"
+                height="1400"
+                alt="Tesouras, pentes e máquina de corte organizados sobre uma bancada"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="gallery-caption"
+                ><span>Detalhes do ofício</span
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-expand"></use></svg
+              ></span></button
+            ><button
+              class="gallery-card gallery-wide"
+              type="button"
+              data-gallery-image="/images/corte-barbearia.webp"
+              data-gallery-caption="Cada estilo, um cuidado"
+              aria-label="Ampliar foto: Cada estilo, um cuidado"
+            >
+              <img
+                src="/images/corte-barbearia.webp"
+                width="1400"
+                height="788"
+                alt="Barbeiro utilizando máquina para finalizar um corte de cabelo"
+                loading="lazy"
+                decoding="async"
+              />
+              <span class="gallery-caption"
+                ><span>Cada estilo, um cuidado</span
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-expand"></use></svg
+              ></span>
+            </button>
+          </div>
+          <p class="gallery-note">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-image"></use>
+            </svg>
+            Fotos ilustrativas. <a href="/creditos-fotografias.html">Conheça os fotógrafos.</a>
+          </p>
+        </div>
+      </section>
+      <section class="booking-section" id="agendar">
+        <div class="booking-backdrop"></div>
+        <div class="wrap booking-layout">
+          <div class="booking-intro">
+            <p class="eyebrow"><span></span> UM HORÁRIO SÓ SEU</p>
+            <h2>Seu próximo<br />visual começa <em>aqui.</em></h2>
+            <p>Sem ligação, sem complicação. Escolha o serviço e um horário livre. A gente cuida do resto.</p>
+            <div class="booking-note">
+              <span class="note-check"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-calendar"></use></svg></span
+              ><span
+                ><strong>Você escolhe o melhor momento</strong
+                ><small>Horários disponíveis de segunda a sábado.</small></span
+              >
+            </div>
+            <div class="booking-note">
+              <span class="note-check"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-mail"></use></svg></span
+              ><span
+                ><strong>Um lembrete para não esquecer</strong
+                ><small>E-mails de lembrete conforme a antecedência da reserva.</small></span
+              >
+            </div>
+            <div class="booking-note">
+              <span class="note-check"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-clock"></use></svg></span
+              ><span
+                ><strong>Se precisar mudar os planos</strong
+                ><small>Altere ou cancele até duas horas antes.</small></span
+              >
+            </div>
+            <div class="booking-assistance">
+              <span>Ficou com alguma dúvida?</span
+              ><a href="https://wa.me/5531991991214" target="_blank" rel="noopener"
+                >Converse com a gente
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use></svg
+              ></a>
+            </div>
+          </div>
+          <div class="booking-card">
+            <div class="booking-card-heading">
+              <div>
+                <span class="step-kicker">VAMOS MARCAR?</span>
+                <h3>Agende seu horário</h3>
+                <p class="booking-progress-copy" id="bookingProgressCopy">
+                  Escolha o serviço, o dia e o horário que preferir.
+                </p>
+              </div>
+              <span class="booking-heading-mark" aria-hidden="true"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-calendar"></use></svg
+              ></span>
+            </div>
+            <div
+              class="booking-requirements is-blocking"
+              id="bookingRequirements"
+              role="status"
+              aria-live="polite"
+            >
+              <p class="requirements-title" id="requirementsTitle">Falta preencher para agendar</p>
+              <ul class="requirements-list" id="requirementsList"></ul>
+            </div>
+            <form id="bookingForm" novalidate>
+              <label class="field-label" for="clientName">Seu nome</label
+              ><input
+                id="clientName"
+                name="nome"
+                class="field"
+                type="text"
+                autocomplete="name"
+                placeholder="Como podemos te chamar?"
+                maxlength="80"
+                required
+              />
+              <div class="field-row">
+                <div class="field-group" id="clientPhoneGroup">
+                  <label class="field-label" for="clientPhone">WhatsApp / telefone</label
+                  ><input
+                    id="clientPhone"
+                    name="telefone"
+                    class="field"
+                    type="tel"
+                    autocomplete="tel"
+                    inputmode="tel"
+                    placeholder="(31) 99999-9999"
+                    maxlength="20"
+                    aria-describedby="phoneHint"
+                    required
+                  />
+                  <p class="field-feedback" id="phoneHint" aria-live="polite">
+                    Informe um telefone com DDD para contato e consulta dos seus agendamentos.
+                  </p>
+                  <label class="check-field"
+                    ><input id="clientWhatsapp" name="whatsapp" type="checkbox" /><span
+                      >Este número também é WhatsApp</span
+                    ></label
+                  >
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="clientEmail">E-mail</label
+                  ><input
+                    id="clientEmail"
+                    name="email"
+                    class="field"
+                    type="email"
+                    autocomplete="email"
+                    placeholder="voce@email.com"
+                    maxlength="160"
+                    required
+                  />
+                </div>
+              </div>
+              <label class="field-label" for="serviceSelect">O que vamos fazer?</label>
+              <div class="select-wrap">
+                <select id="serviceSelect" name="servico_id" class="field" required>
+                  <option value="">Selecione um serviço</option></select
+                ><span
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-chevron-down"></use></svg
+                ></span>
+              </div>
+              <div class="field-row">
+                <div class="field-group">
+                  <label class="field-label" for="appointmentDate">Qual dia?</label
+                  ><input id="appointmentDate" name="data" class="field" type="date" required />
+                </div>
+                <div class="field-group">
+                  <label class="field-label" for="appointmentTime">Qual horário?</label>
+                  <div class="select-wrap">
+                    <select id="appointmentTime" name="hora" class="field" required disabled>
+                      <option value="">Escolha a data primeiro</option></select
+                    ><span
+                      ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <use href="#icon-chevron-down"></use></svg
+                    ></span>
+                  </div>
+                </div>
+              </div>
+              <p class="form-hint" id="availabilityHint">
+                Atendemos de segunda a sábado. O horário de almoço, das 12h às 13h, é reservado para pausa.
+              </p>
+              <div class="booking-summary" id="bookingSummary">
+                <span class="summary-icon"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-scissors"></use></svg></span
+                ><span
+                  ><small>SEU ATENDIMENTO</small
+                  ><strong id="summaryService">Selecione um serviço</strong></span
+                ><b id="summaryPrice">—</b>
+              </div>
+              <button type="submit" class="button button-gold button-wide" id="submitBooking">
+                Confirmar agendamento
+                <span aria-hidden="true"
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-arrow-up"></use></svg
+                ></span>
+              </button>
+              <p class="form-hint booking-policy">
+                Cancelamentos pelo site podem ser feitos somente até 2 horas antes do horário marcado.
+              </p>
+              <p class="privacy-note">
+                Usaremos seus dados para organizar seu atendimento e enviar os lembretes por e-mail.
+              </p>
+            </form>
+            <div class="booking-success hidden" id="bookingSuccess" aria-live="polite">
+              <span class="success-check"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-check-circle"></use></svg
+              ></span>
+              <p class="eyebrow dark-eyebrow">DEU CERTO!</p>
+              <h3>Seu horário está reservado.</h3>
+              <p>
+                Seu cadastro foi salvo. Para consultar, alterar ou cancelar, use o telefone ou o e-mail
+                informado na reserva.
+              </p>
+              <div class="success-details" id="successDetails"></div>
+              <p class="booking-reminder-note" id="reminderSetupNotice">
+                Você receberá lembretes por e-mail 24 horas e 3 horas antes do atendimento. O cancelamento
+                pelo site pode ser feito até 2 horas antes do horário marcado.
+              </p>
+              <button class="button button-dark button-wide" id="successMyAppointments" type="button">
+                Ver meus agendamentos
+                <span
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-arrow-up"></use></svg
+                ></span></button
+              ><button class="text-link success-new" id="newBooking" type="button">
+                Fazer outro agendamento
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="location-section section" id="localizacao">
+        <div class="wrap location-layout">
+          <div class="location-copy">
+            <p class="eyebrow dark-eyebrow">SEU PRÓXIMO DESTINO</p>
+            <h2>Chega mais.<br />Estamos te <em>esperando.</em></h2>
+            <div class="location-detail">
+              <span class="location-icon"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-pin"></use></svg
+              ></span>
+              <div>
+                <small>ENCONTRE A GENTE</small><strong>Rua Tiradentes, 377</strong>
+                <p>Itacolomi · Sabará / MG</p>
+              </div>
+            </div>
+            <div class="location-detail">
+              <span class="location-icon"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-clock"></use></svg
+              ></span>
+              <div>
+                <small>HORÁRIO DE ATENDIMENTO</small><strong>Segunda a sábado · 09h às 19h30</strong>
+                <p>Almoço: 12h às 13h · Domingo fechado</p>
+              </div>
+            </div>
+            <div class="location-detail">
+              <span class="location-icon"
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-phone"></use></svg
+              ></span>
+              <div>
+                <small>VAMOS CONVERSAR?</small
+                ><strong><a href="tel:+5531982875454">(31) 98287-5454</a></strong>
+                <p>WhatsApp: (31) 99199-1214</p>
+              </div>
+            </div>
+            <div class="location-actions">
+              <a
+                class="button button-dark"
+                href="https://www.google.com/maps/search/?api=1&query=Rua+Tiradentes%2C+377%2C+Itacolomi%2C+Sabar%C3%A1%2FMG"
+                target="_blank"
+                rel="noopener"
+                >Traçar minha rota
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use></svg></a
+              ><a
+                class="text-link dark-text-link"
+                href="https://wa.me/5531991991214"
+                target="_blank"
+                rel="noopener"
+                >Chamar no WhatsApp
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use></svg
+              ></a>
+            </div>
+          </div>
+          <div class="map-card" aria-label="Acesso à rota da Barbearia do Semá">
+            <div class="map-decor map-decor-one"></div>
+            <div class="map-decor map-decor-two"></div>
+            <span class="map-region">ITACOLOMI · SABARÁ</span>
+            <div class="map-pin">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#icon-scissors"></use>
+              </svg>
+            </div>
+            <div class="map-label">
+              <small>É AQUI QUE A GENTE SE ENCONTRA</small><strong>Barbearia do Semá</strong
+              ><span>Rua Tiradentes, 377 · Itacolomi</span
+              ><a
+                href="https://www.google.com/maps/search/?api=1&query=Rua+Tiradentes%2C+377%2C+Itacolomi%2C+Sabar%C3%A1%2FMG"
+                target="_blank"
+                rel="noopener"
+                >Abrir no Google Maps
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use></svg
+              ></a>
+            </div>
+            <div class="map-road road-one"></div>
+            <div class="map-road road-two"></div>
+            <div class="map-road road-three"></div>
+          </div>
+        </div>
+      </section>
+      <section class="final-cta">
+        <div class="wrap final-cta-inner">
+          <div>
+            <p class="eyebrow">O SEU ESTILO MERECE ESSE CUIDADO</p>
+            <h2>Nos vemos no<br />próximo <em>corte?</em></h2>
+          </div>
+          <a class="button button-gold" href="#agendar"
+            >Reservar meu horário
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-arrow-up"></use></svg
+          ></a>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <div class="wrap footer-main">
+        <a class="brand footer-brand" href="#topo" aria-label="Barbearia do Semá - início"
+          ><span class="brand-mark"
+            ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-scissors"></use></svg></span
+          ><span class="brand-copy"
+            ><span class="brand-name">BARBEARIA <b>DO SEMÁ</b></span
+            ><span class="brand-tagline">SEU ESTILO, NO CAPRICHO.</span></span
+          ></a
+        >
+        <p>Cuidado no visual.<br />Capricho no atendimento.</p>
+        <div class="footer-links">
+          <a href="#servicos">Serviços</a><a href="#agendar">Agendar</a
+          ><button id="openAdmin" type="button">
+            Área do Semá
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-lock"></use>
+            </svg>
+          </button>
+        </div>
       </div>
-    </section>
+      <div class="wrap footer-bottom">
+        <span>© <span id="year"></span> Barbearia do Semá · Sabará, MG</span
+        ><a href="/creditos-fotografias.html">Fotografias ilustrativas · Créditos</a>
+      </div>
+    </footer>
+    <div class="mobile-booking-bar" id="mobileBookingBar" inert aria-hidden="true">
+      <div><small>UM MOMENTO PARA VOCÊ</small><strong>Seu próximo visual</strong></div>
+      <a class="button button-gold" href="#agendar"
+        >Agendar
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <use href="#icon-arrow-up"></use></svg
+      ></a>
+    </div>
+    <div
+      class="modal-backdrop hidden"
+      id="customerModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="customerModalTitle"
+    >
+      <div class="modal-card modal-wide">
+        <button class="modal-close" data-close="customerModal" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#icon-close"></use>
+          </svg>
+        </button>
+        <div class="modal-heading">
+          <p class="eyebrow dark-eyebrow">SUA ÁREA</p>
+          <h2 id="customerModalTitle">Meus <em>agendamentos.</em></h2>
+          <p>
+            Consulte seus horários usando o telefone <strong>ou</strong> o e-mail cadastrado na reserva.
+            Preencha apenas um dos campos.
+          </p>
+        </div>
+        <form id="customerLoginForm" class="customer-login-form">
+          <div>
+            <label class="field-label" for="lookupPhone">Seu telefone (opcional)</label
+            ><input
+              class="field"
+              id="lookupPhone"
+              type="tel"
+              autocomplete="tel"
+              placeholder="(31) 99999-9999"
+            />
+          </div>
+          <div>
+            <label class="field-label" for="lookupEmail">Seu e-mail (opcional)</label
+            ><input
+              class="field"
+              id="lookupEmail"
+              type="email"
+              autocomplete="email"
+              placeholder="voce@email.com"
+              maxlength="160"
+            />
+          </div>
+          <button class="button button-dark" type="submit">
+            Consultar agendamentos
+            <span
+              ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#icon-arrow-up"></use></svg
+            ></span>
+          </button>
+        </form>
+        <p class="modal-footnote">
+          Informe pelo menos um dado cadastrado. Se preencher os dois, eles deverão corresponder à mesma
+          reserva.
+        </p>
+        <div id="customerAppointments" class="customer-appointments"></div>
+      </div>
+    </div>
 
-    <section class="booking-section" id="agendar">
-      <div class="booking-backdrop"></div>
-      <div class="wrap booking-layout">
-        <div class="booking-intro"><p class="eyebrow"><span></span> RESERVE SEU MOMENTO</p><h2>Seu próximo<br />visual começa <em>aqui.</em></h2><p>Sem ligação, sem espera. Escolha o serviço, encontre um horário livre e pronto: seu lugar fica reservado.</p><div class="booking-note"><span class="note-check">✓</span><span><strong>Cadastro automático e gratuito</strong><small>Seus dados ficam salvos junto com o agendamento.</small></span></div><div class="booking-note"><span class="note-check">✓</span><span><strong>Lembretes para não esquecer</strong><small>Receba e-mails 24 horas e 3 horas antes do atendimento.</small></span></div></div>
-        <div class="booking-card">
-          <div class="booking-card-heading"><div><span class="step-kicker">VAMOS MARCAR?</span><h3>Agende seu horário</h3><p class="booking-progress-copy" id="bookingProgressCopy">Escolha o serviço, o dia e o horário que preferir.</p></div><span class="booking-heading-mark" aria-hidden="true">✳</span></div>
-          <div class="booking-requirements is-blocking" id="bookingRequirements" role="status" aria-live="polite"><p class="requirements-title" id="requirementsTitle">Falta preencher para agendar</p><ul class="requirements-list" id="requirementsList"></ul></div>
-          <form id="bookingForm" novalidate>
-            <label class="field-label" for="clientName">Seu nome</label><input id="clientName" name="nome" class="field" type="text" autocomplete="name" placeholder="Como podemos te chamar?" maxlength="80" required />
-            <div class="field-row"><div class="field-group" id="clientPhoneGroup"><label class="field-label" for="clientPhone">WhatsApp / telefone</label><input id="clientPhone" name="telefone" class="field" type="tel" autocomplete="tel" inputmode="tel" placeholder="(31) 99999-9999" maxlength="20" aria-describedby="phoneHint" required /><p class="field-feedback" id="phoneHint" aria-live="polite">Informe um telefone com DDD para contato e consulta dos seus agendamentos.</p><label class="check-field"><input id="clientWhatsapp" name="whatsapp" type="checkbox" /><span>Este número também é WhatsApp</span></label></div><div class="field-group"><label class="field-label" for="clientEmail">E-mail</label><input id="clientEmail" name="email" class="field" type="email" autocomplete="email" placeholder="voce@email.com" maxlength="160" required /></div></div>
-            <label class="field-label" for="serviceSelect">O que vamos fazer?</label><div class="select-wrap"><select id="serviceSelect" name="servico_id" class="field" required><option value="">Selecione um serviço</option></select><span>⌄</span></div>
-            <div class="field-row"><div class="field-group"><label class="field-label" for="appointmentDate">Qual dia?</label><input id="appointmentDate" name="data" class="field" type="date" required /></div><div class="field-group"><label class="field-label" for="appointmentTime">Qual horário?</label><div class="select-wrap"><select id="appointmentTime" name="hora" class="field" required disabled><option value="">Escolha a data primeiro</option></select><span>⌄</span></div></div></div>
-            <p class="form-hint" id="availabilityHint">Atendemos de segunda a sábado. O horário de almoço, das 12h às 13h, é reservado para pausa.</p>
-            <div class="booking-summary" id="bookingSummary"><span class="summary-icon">✳</span><span><small>SEU ATENDIMENTO</small><strong id="summaryService">Selecione um serviço</strong></span><b id="summaryPrice">—</b></div>
-            <button type="submit" class="button button-gold button-wide" id="submitBooking">Confirmar agendamento <span aria-hidden="true">↗</span></button>
-            <p class="form-hint booking-policy">Cancelamentos pelo site podem ser feitos somente até 2 horas antes do horário marcado.</p><p class="privacy-note">Usaremos seus dados para organizar seu atendimento e enviar os lembretes por e-mail.</p>
+    <div
+      class="modal-backdrop hidden"
+      id="adminModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="adminModalTitle"
+    >
+      <div class="modal-card admin-modal-card">
+        <button class="modal-close" data-close="adminModal" aria-label="Fechar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#icon-close"></use>
+          </svg>
+        </button>
+        <div class="admin-login" id="adminLoginPanel">
+          <p class="eyebrow dark-eyebrow">ACESSO RESTRITO</p>
+          <h2 id="adminModalTitle">Área do <em>Semá.</em></h2>
+          <p>Entre para organizar a agenda da barbearia.</p>
+          <form id="adminLoginForm">
+            <label class="field-label" for="adminEmail">E-mail</label
+            ><input
+              class="field"
+              id="adminEmail"
+              type="email"
+              autocomplete="username"
+              placeholder="sema@barbeariadosema.com.br"
+              required
+            /><label class="field-label" for="adminPassword">Senha</label
+            ><input
+              class="field"
+              id="adminPassword"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Sua senha de acesso"
+              required
+            /><button class="button button-dark button-wide" type="submit">
+              Entrar no painel
+              <span
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-arrow-up"></use></svg
+              ></span>
+            </button>
           </form>
-          <div class="booking-success hidden" id="bookingSuccess" aria-live="polite"><span class="success-check">✓</span><p class="eyebrow dark-eyebrow">DEU CERTO!</p><h3>Seu horário está reservado.</h3><p>Seu cadastro foi salvo. Para consultar, alterar ou cancelar, use o telefone e o e-mail informados na reserva.</p><div class="success-details" id="successDetails"></div><p class="booking-reminder-note" id="reminderSetupNotice">Você receberá lembretes por e-mail 24 horas e 3 horas antes do atendimento. O cancelamento pelo site pode ser feito até 2 horas antes do horário marcado.</p><button class="button button-dark button-wide" id="successMyAppointments" type="button">Ver meus agendamentos <span>↗</span></button><button class="text-link success-new" id="newBooking" type="button">Fazer outro agendamento</button></div>
+          <p class="modal-footnote">Acesso exclusivo da barbearia.</p>
+        </div>
+        <div id="adminDashboard" class="admin-dashboard hidden">
+          <div class="admin-dash-heading">
+            <div>
+              <p class="eyebrow dark-eyebrow">PAINEL DA BARBEARIA</p>
+              <h2>Agenda do <em>Semá.</em></h2>
+            </div>
+            <button type="button" id="adminLogout" class="text-link dark-text-link">
+              Sair
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <use href="#icon-arrow-up"></use>
+              </svg>
+            </button>
+          </div>
+          <div class="admin-filters">
+            <div>
+              <label class="field-label" for="adminFrom">De</label
+              ><input type="date" id="adminFrom" class="field" />
+            </div>
+            <div>
+              <label class="field-label" for="adminTo">Até</label
+              ><input type="date" id="adminTo" class="field" />
+            </div>
+            <button id="loadAdminAppointments" class="button button-dark">Ver agenda</button>
+          </div>
+          <div class="admin-metrics" id="adminMetrics"></div>
+          <div id="adminAppointments" class="admin-appointments"></div>
+          <section class="admin-manual-booking">
+            <div class="admin-manual-heading">
+              <div>
+                <h3>Agendar para um cliente</h3>
+                <p>
+                  Use esta opção para encaixes e agendamentos feitos diretamente com você. Os horários podem
+                  ser marcados até 10 minutos antes, conforme a disponibilidade.
+                </p>
+              </div>
+              <span
+                ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <use href="#icon-scissors"></use></svg
+              ></span>
+            </div>
+            <form id="adminCreateBookingForm" class="admin-create-form">
+              <div>
+                <label class="field-label" for="adminClientName">Nome do cliente</label
+                ><input
+                  class="field"
+                  id="adminClientName"
+                  maxlength="80"
+                  placeholder="Nome completo"
+                  required
+                />
+              </div>
+              <div>
+                <label class="field-label" for="adminClientPhone">Telefone</label
+                ><input
+                  class="field"
+                  id="adminClientPhone"
+                  type="tel"
+                  autocomplete="tel"
+                  inputmode="tel"
+                  maxlength="20"
+                  placeholder="(31) 99999-9999"
+                  required
+                />
+              </div>
+              <div>
+                <label class="field-label" for="adminClientEmail">E-mail</label
+                ><input
+                  class="field"
+                  id="adminClientEmail"
+                  type="email"
+                  maxlength="160"
+                  placeholder="cliente@email.com"
+                  required
+                />
+              </div>
+              <div>
+                <label class="field-label" for="adminBookingService">Serviço</label
+                ><select class="field" id="adminBookingService" required></select>
+              </div>
+              <div>
+                <label class="field-label" for="adminBookingDate">Data</label
+                ><input class="field" id="adminBookingDate" type="date" required />
+              </div>
+              <div>
+                <label class="field-label" for="adminBookingTime">Horário disponível</label
+                ><select class="field" id="adminBookingTime" required disabled>
+                  <option value="">Selecione serviço e data</option>
+                </select>
+              </div>
+              <button class="button button-dark" type="submit">
+                Criar agendamento
+                <span
+                  ><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <use href="#icon-arrow-up"></use></svg
+                ></span>
+              </button>
+            </form>
+            <p class="admin-booking-hint" id="adminBookingHint">
+              Selecione o serviço e a data para consultar os horários livres.
+            </p>
+            <div class="admin-created-booking hidden" id="adminCreatedBooking"></div>
+          </section>
+          <div class="admin-tools">
+            <div class="admin-tool">
+              <h3>Bloquear horário</h3>
+              <p>Bloqueie um intervalo inteiro quando precisar sair ou pausar os atendimentos.</p>
+              <form id="blockSlotForm">
+                <label class="field-label" for="blockDate">Data</label
+                ><input class="field" id="blockDate" type="date" required /><label
+                  class="field-label"
+                  for="blockTime"
+                  >Começa às</label
+                ><select class="field" id="blockTime" required></select
+                ><label class="field-label" for="blockEndTime">Termina às</label
+                ><select class="field" id="blockEndTime" required>
+                  <option value="">Selecione o fim</option></select
+                ><label class="field-label" for="blockReason">Motivo</label
+                ><input
+                  class="field"
+                  id="blockReason"
+                  maxlength="140"
+                  placeholder="Ex.: compromisso"
+                /><button class="button button-outline button-wide" type="submit">
+                  Bloquear intervalo +
+                </button>
+              </form>
+            </div>
+            <div class="admin-tool">
+              <h3>Fechar o dia</h3>
+              <p>Use quando a barbearia não for abrir nessa data. Nenhum novo agendamento será permitido.</p>
+              <form id="holidayForm">
+                <label class="field-label" for="holidayDate">Data</label
+                ><input class="field" id="holidayDate" type="date" required /><label
+                  class="field-label"
+                  for="holidayReason"
+                  >Descrição</label
+                ><input
+                  class="field"
+                  id="holidayReason"
+                  maxlength="140"
+                  placeholder="Ex.: não haverá atendimento"
+                  required
+                /><button class="button button-outline button-wide" type="submit">Fechar dia +</button>
+              </form>
+            </div>
+          </div>
+          <div class="admin-lists">
+            <div>
+              <h3>Horários bloqueados</h3>
+              <div id="adminBlocks"></div>
+            </div>
+            <div>
+              <h3>Dias fechados</h3>
+              <div id="adminHolidays"></div>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </div>
 
-    <section class="about-section section" id="sobre"><div class="wrap about-layout"><div class="about-image"><div class="about-image-main"></div><div class="about-stamp"><span>✳</span><strong>NA MEDIDA</strong><small>DESDE O PRIMEIRO CORTE</small></div></div><div class="about-copy"><p class="eyebrow dark-eyebrow">BOM PAPO, BOM CORTE</p><h2>O cuidado está<br />nos <em>detalhes.</em></h2><p>A Barbearia do Semá é aquele lugar onde você chega pra cuidar do visual e sai se sentindo bem. Atendimento próximo, conversa boa e atenção ao que faz você se sentir você.</p><p>Nosso espaço conta com ar-condicionado e Smart TV com filmes, séries e YouTube para deixar sua experiência ainda mais confortável.</p><p>Fazemos cortes infantis, luzes e descoloração. Também temos gel, pentes e pomadas à venda para você manter o estilo em casa.</p><p>Nosso combinado é simples: respeitar seu estilo, caprichar no acabamento e fazer cada visita valer a pena.</p><a class="text-link dark-text-link" href="#agendar">Bora marcar? <span>↗</span></a></div></div></section>
-
-    <section class="quote-band"><div class="quote-ornament">“</div><p>Um bom corte muda o visual.<br /><em>Um bom atendimento muda o dia.</em></p><span>BARBEARIA DO SEMÁ · SABARÁ, MG</span></section>
-
-    <section class="location-section section" id="localizacao"><div class="wrap location-layout"><div class="location-copy"><p class="eyebrow dark-eyebrow">CHEGA AÍ</p><h2>Estamos te<br /><em>esperando.</em></h2><div class="location-detail"><span class="location-icon" aria-hidden="true">⌖</span><div><small>ENDEREÇO</small><strong>Rua Tiradentes, 377</strong><p>Itacolomi · Sabará / MG</p></div></div><div class="location-detail"><span class="location-icon" aria-hidden="true">◷</span><div><small>HORÁRIO DE ATENDIMENTO</small><strong>Segunda a sábado</strong><p>09h às 19h30 <span class="muted-dot">·</span> Domingo fechado<br /><small>Intervalo de almoço: 12h às 13h</small></p></div></div><div class="location-detail"><span class="location-icon" aria-hidden="true">☎</span><div><small>FALE COM A GENTE</small><strong>(31) 98287-5454</strong><p>WhatsApp: (31) 99199-1214</p></div></div><div class="location-actions"><a class="button button-dark" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Rua+Tiradentes%2C+377%2C+Itacolomi%2C+Sabar%C3%A1%2FMG">Ver no mapa <span>↗</span></a><a class="text-link dark-text-link" target="_blank" rel="noopener" href="https://wa.me/5531991991214">Chamar no WhatsApp <span>↗</span></a></div></div><div class="map-card"><div class="map-decor map-decor-one"></div><div class="map-decor map-decor-two"></div><div class="map-pin"><span>✂</span></div><div class="map-label"><small>VOCÊ ENCONTRA A GENTE AQUI</small><strong>Barbearia do Semá</strong><span>Rua Tiradentes, 377 · Itacolomi</span><a href="https://www.google.com/maps/search/?api=1&query=Rua+Tiradentes%2C+377%2C+Itacolomi%2C+Sabar%C3%A1%2FMG" target="_blank" rel="noopener">Abrir rota no mapa ↗</a></div><div class="map-road road-one"></div><div class="map-road road-two"></div><div class="map-road road-three"></div><div class="map-street street-one">R. TIRADENTES</div><div class="map-street street-two">ITACOLOMI</div></div></div></section>
-
-    <section class="final-cta"><div class="wrap final-cta-inner"><div><p class="eyebrow"><span></span> UM HORÁRIO RESERVADO PRA VOCÊ</p><h2>Vai deixar pra <em>depois?</em></h2></div><a class="button button-gold" href="#agendar">Agendar meu corte <span>↗</span></a></div></section>
-  </main>
-
-  <footer class="site-footer"><div class="wrap footer-main"><a class="brand footer-brand" href="#topo"><span class="brand-mark"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 10l26 28M37 10L11 38M15 13l18 22M33 13L15 35"/><circle cx="11" cy="10" r="4"/><circle cx="37" cy="10" r="4"/><circle cx="11" cy="38" r="4"/><circle cx="37" cy="38" r="4"/></svg></span><span class="brand-copy"><span class="brand-name">BARBEARIA <b>DO SEMÁ</b></span><span class="brand-tagline">TRADIÇÃO EM CADA DETALHE</span></span></a><p>Seu estilo, no capricho.<br />Rua Tiradentes, 377 · Sabará/MG</p><div class="footer-links"><a href="#servicos">Serviços</a><a href="#agendar">Agendar</a><button id="openAdmin">Área do Semá <span>↗</span></button></div></div><div class="wrap footer-bottom"><span>© <span id="year"></span> Barbearia do Semá. Feito com cuidado.</span><span>Sabará, Minas Gerais <span class="footer-star">✳</span></span></div></footer>
-
-  <div class="modal-backdrop hidden" id="customerModal" role="dialog" aria-modal="true" aria-labelledby="customerModalTitle"><div class="modal-card modal-wide"><button class="modal-close" data-close="customerModal" aria-label="Fechar">×</button><div class="modal-heading"><p class="eyebrow dark-eyebrow">SUA ÁREA</p><h2 id="customerModalTitle">Meus <em>agendamentos.</em></h2><p>Consulte seus horários usando o telefone <strong>ou</strong> o e-mail cadastrado na reserva. Preencha apenas um dos campos.</p></div><form id="customerLoginForm" class="customer-login-form"><div><label class="field-label" for="lookupPhone">Seu telefone (opcional)</label><input class="field" id="lookupPhone" type="tel" autocomplete="tel" placeholder="(31) 99999-9999" /></div><div><label class="field-label" for="lookupEmail">Seu e-mail (opcional)</label><input class="field" id="lookupEmail" type="email" autocomplete="email" placeholder="voce@email.com" maxlength="160" /></div><button class="button button-dark" type="submit">Consultar agendamentos <span>↗</span></button></form><p class="modal-footnote">Informe pelo menos um dado cadastrado. Se preencher os dois, eles deverão corresponder à mesma reserva.</p><div id="customerAppointments" class="customer-appointments"></div></div></div>
-
-  <div class="modal-backdrop hidden" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle"><div class="modal-card admin-modal-card"><button class="modal-close" data-close="adminModal" aria-label="Fechar">×</button><div class="admin-login" id="adminLoginPanel"><p class="eyebrow dark-eyebrow">ACESSO RESTRITO</p><h2 id="adminModalTitle">Área do <em>Semá.</em></h2><p>Entre para organizar a agenda da barbearia.</p><form id="adminLoginForm"><label class="field-label" for="adminEmail">E-mail</label><input class="field" id="adminEmail" type="email" autocomplete="username" placeholder="sema@barbeariadosema.com.br" required /><label class="field-label" for="adminPassword">Senha</label><input class="field" id="adminPassword" type="password" autocomplete="current-password" placeholder="Sua senha de acesso" required /><button class="button button-dark button-wide" type="submit">Entrar no painel <span>↗</span></button></form><p class="modal-footnote">Acesso exclusivo da barbearia.</p></div><div id="adminDashboard" class="admin-dashboard hidden"><div class="admin-dash-heading"><div><p class="eyebrow dark-eyebrow">PAINEL DA BARBEARIA</p><h2>Agenda do <em>Semá.</em></h2></div><button type="button" id="adminLogout" class="text-link dark-text-link">Sair ↗</button></div><div class="admin-filters"><div><label class="field-label" for="adminFrom">De</label><input type="date" id="adminFrom" class="field" /></div><div><label class="field-label" for="adminTo">Até</label><input type="date" id="adminTo" class="field" /></div><button id="loadAdminAppointments" class="button button-dark">Ver agenda</button></div><div class="admin-metrics" id="adminMetrics"></div><div id="adminAppointments" class="admin-appointments"></div><section class="admin-manual-booking"><div class="admin-manual-heading"><div><h3>Agendar para um cliente</h3><p>Use esta opção para encaixes e agendamentos feitos diretamente com você. Os horários podem ser marcados até 10 minutos antes, conforme a disponibilidade.</p></div><span>✂</span></div><form id="adminCreateBookingForm" class="admin-create-form"><div><label class="field-label" for="adminClientName">Nome do cliente</label><input class="field" id="adminClientName" maxlength="80" placeholder="Nome completo" required /></div><div><label class="field-label" for="adminClientPhone">Telefone</label><input class="field" id="adminClientPhone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="(31) 99999-9999" required /></div><div><label class="field-label" for="adminClientEmail">E-mail</label><input class="field" id="adminClientEmail" type="email" maxlength="160" placeholder="cliente@email.com" required /></div><div><label class="field-label" for="adminBookingService">Serviço</label><select class="field" id="adminBookingService" required></select></div><div><label class="field-label" for="adminBookingDate">Data</label><input class="field" id="adminBookingDate" type="date" required /></div><div><label class="field-label" for="adminBookingTime">Horário disponível</label><select class="field" id="adminBookingTime" required disabled><option value="">Selecione serviço e data</option></select></div><button class="button button-dark" type="submit">Criar agendamento <span>↗</span></button></form><p class="admin-booking-hint" id="adminBookingHint">Selecione o serviço e a data para consultar os horários livres.</p><div class="admin-created-booking hidden" id="adminCreatedBooking"></div></section><div class="admin-tools"><div class="admin-tool"><h3>Bloquear horário</h3><p>Bloqueie um intervalo inteiro quando precisar sair ou pausar os atendimentos.</p><form id="blockSlotForm"><label class="field-label" for="blockDate">Data</label><input class="field" id="blockDate" type="date" required /><label class="field-label" for="blockTime">Começa às</label><select class="field" id="blockTime" required></select><label class="field-label" for="blockEndTime">Termina às</label><select class="field" id="blockEndTime" required><option value="">Selecione o fim</option></select><label class="field-label" for="blockReason">Motivo</label><input class="field" id="blockReason" maxlength="140" placeholder="Ex.: compromisso" /><button class="button button-outline button-wide" type="submit">Bloquear intervalo +</button></form></div><div class="admin-tool"><h3>Fechar o dia</h3><p>Use quando a barbearia não for abrir nessa data. Nenhum novo agendamento será permitido.</p><form id="holidayForm"><label class="field-label" for="holidayDate">Data</label><input class="field" id="holidayDate" type="date" required /><label class="field-label" for="holidayReason">Descrição</label><input class="field" id="holidayReason" maxlength="140" placeholder="Ex.: não haverá atendimento" required /><button class="button button-outline button-wide" type="submit">Fechar dia +</button></form></div></div><div class="admin-lists"><div><h3>Horários bloqueados</h3><div id="adminBlocks"></div></div><div><h3>Dias fechados</h3><div id="adminHolidays"></div></div></div></div></div></div>
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="/app.js"></script>
-</body>
+    <div
+      class="modal-backdrop gallery-modal hidden"
+      id="galleryModal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="galleryModalTitle"
+    >
+      <div class="gallery-dialog">
+        <h2 class="sr-only" id="galleryModalTitle">Galeria de fotografias ilustrativas</h2>
+        <button class="modal-close" type="button" data-close="galleryModal" aria-label="Fechar galeria">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <use href="#icon-close"></use>
+          </svg>
+        </button>
+        <div class="gallery-preview-wrap">
+          <img id="galleryPreview" alt="" /><button
+            class="gallery-nav gallery-previous"
+            id="galleryPrevious"
+            type="button"
+            aria-label="Foto anterior"
+          >
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-chevron-left"></use>
+            </svg></button
+          ><button class="gallery-nav gallery-next" id="galleryNext" type="button" aria-label="Próxima foto">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <use href="#icon-chevron-right"></use>
+            </svg>
+          </button>
+        </div>
+        <div class="gallery-modal-caption">
+          <p id="galleryCaption" aria-live="polite"></p>
+          <span id="galleryPosition"></span>
+        </div>
+        <small class="gallery-disclaimer">Fotografias ilustrativas · Use as setas para navegar</small>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
 </html>

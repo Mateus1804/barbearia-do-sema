@@ -152,7 +152,7 @@ function renderAdminLists(blocks, holidays) {
     ? blocks
         .map(
           (b) =>
-            `<div class="admin-list-item"><span>${escapeHtml(formatDate(b.data))} · ${escapeHtml(b.hora)}<br>${escapeHtml(b.motivo)}</span><button data-remove-block="${b.id}" title="Remover bloqueio">×</button></div>`
+            `<div class="admin-list-item"><span>${escapeHtml(formatDate(b.data))} · ${escapeHtml(b.hora)}<br>${escapeHtml(b.motivo)}</span><button data-remove-block="${b.id}" title="Remover bloqueio" aria-label="Remover bloqueio"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg></button></div>`
         )
         .join('')
     : '<div class="empty-state">Nenhum bloqueio no período.</div>';
@@ -160,7 +160,7 @@ function renderAdminLists(blocks, holidays) {
     ? holidays
         .map(
           (h) =>
-            `<div class="admin-list-item"><span>${escapeHtml(formatDate(h.data))}<br>${escapeHtml(h.motivo)}</span><button data-remove-holiday="${h.id}" title="Remover feriado">×</button></div>`
+            `<div class="admin-list-item"><span>${escapeHtml(formatDate(h.data))}<br>${escapeHtml(h.motivo)}</span><button data-remove-holiday="${h.id}" title="Remover feriado" aria-label="Remover feriado"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg></button></div>`
         )
         .join('')
     : '<div class="empty-state">Nenhum dia fechado no período.</div>';
