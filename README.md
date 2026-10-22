@@ -2,7 +2,7 @@
 
 Sistema de agendamento da Barbearia do Semá, em Itacolomi, Sabará/MG. Reúne apresentação da barbearia, reserva de horários, área do cliente, painel administrativo e lembretes por e-mail em um único serviço Node.js.
 
-O projeto é um MVP acadêmico. Esta documentação descreve a implementação e as verificações da revisão técnica de 21/10/2026.
+O projeto é um MVP acadêmico. Esta documentação descreve a implementação, a revisão técnica e a renovação da interface realizadas em 21/10/2026.
 
 ## Funcionalidades
 
@@ -13,6 +13,19 @@ O projeto é um MVP acadêmico. Esta documentação descreve a implementação e
 - Painel para criar reservas, pré-confirmar presença, cancelar, bloquear intervalos e fechar dias.
 - Lembretes de 24 horas e três horas por SMTP, conforme antecedência e janela de envio.
 - Interface responsiva com animações e suporte à preferência por movimento reduzido.
+- Galeria de fotografias com ampliação e navegação por teclado.
+
+## Interface e fotografias
+
+A interface combina verde escuro, creme e dourado, títulos com serifa e ícones SVG. A página reúne apresentação, serviços, experiência, galeria, agendamento e localização. No celular, o menu recolhe após uma ação e um atalho de reserva aparece quando a abertura e o formulário estão fora da tela.
+
+As quatro fotografias WebP ficam em `public/images/`, sem depender de um servidor externo para carregar. São imagens ilustrativas: não representam instalações, equipe, clientes ou resultados da barbearia. Autores, originais e licença estão na [página de créditos](public/creditos-fotografias.html), também acessível pelo site. Para usar fotos próprias, substitua os arquivos e atualize textos alternativos, legendas e créditos.
+
+A galeria aceita cliques, setas e Escape. Os modais mantêm a navegação por Tab em seu conteúdo e devolvem o foco ao fechar. As fontes continuam usando Google Fonts, com alternativas locais quando o serviço estiver indisponível.
+
+![Prévia da interface em desktop](docs/imagens/frontend-desktop.jpg)
+
+O [registro da renovação do frontend](docs/frontend.md) reúne decisões, capturas e validação.
 
 ## Tecnologias e requisitos
 
@@ -126,7 +139,10 @@ As marcas no SQLite evitam reenvios nos ciclos normais de uma instância. Uma pa
 | `src/http.js` | Erros HTTP e execução de handlers |
 | `src/reminders.js` | Elegibilidade, conteúdo e envio dos lembretes |
 | `public/app.js` | Inicialização da interface |
-| `public/js/` | Utilitários, disponibilidade, agendamento, cliente, administrador e animações |
+| `public/js/` | Utilitários, disponibilidade, agendamento, cliente, administrador, navegação e animações |
+| `public/js/gallery.js` | Ampliação e navegação da galeria |
+| `public/images/` | Fotografias ilustrativas em WebP |
+| `public/creditos-fotografias.html` | Autores, fontes e licença das fotografias |
 | `public/booking-rules.js` | Contatos, pendências do formulário e prazo compartilhado de alteração |
 | `test/` | Testes automatizados |
 | `test-support/` | Apoio aos testes de navegador |
@@ -187,6 +203,7 @@ npm test
 | Limite de alteração | Exatamente duas horas e um milissegundo após o limite |
 | Navegador | Formulário, consulta por um identificador, remarcação e cancelamento completos, rede e respostas atrasadas |
 | Layout | Desktop, tablet e celular; alinhamento, rolagem lateral e animações |
+| Novo frontend | Imagens locais, ícones, galeria, foco, teclado, menu, atalho móvel e movimento reduzido |
 | Migrações | Bancos atuais e legados, preservação de dados e integridade SQLite |
 | Lembretes | Transporte simulado, repetição de ciclos, falhas, cancelamento, remarcação e janela |
 | Segurança | Credenciais de produção, JWT, política de conteúdo, erros, cache e reservas concorrentes |
@@ -195,7 +212,7 @@ Os testes usam bancos em memória e arquivos temporários próprios. O transport
 
 ## Auditoria técnica e qualidade
 
-A revisão de 21/10/2026 partiu da referência `f319fd9`. A suíte original passou com 75 testes após instalar o Chromium. Na versão revisada:
+A revisão técnica de 21/10/2026 partiu da referência `f319fd9`. A suíte original passou com 75 testes após instalar o Chromium. A refatoração registrada no commit `1b7ed09`, anterior à renovação visual, obteve:
 
 - **98 testes aprovados, zero falhas e zero testes pulados**, com navegador obrigatório.
 - **ESLint aprovado sem erros ou avisos.**
@@ -206,6 +223,8 @@ Foram corrigidos o formulário de remarcação, respostas antigas no painel, per
 
 O [registro da auditoria técnica](docs/auditoria-tecnica.md) apresenta arquivos envolvidos, evidências, critérios de validação e riscos remanescentes. Os resultados correspondem aos cenários executados e não certificam ausência de falhas.
 
+A renovação visual posterior manteve os 98 testes e acrescentou seis cenários de navegador: **104 aprovados, zero falhas e zero pulados**, com `REQUIRE_BROWSER_TESTS=1 npm test`. O `npm run lint` passou sem erros ou avisos. Foram conferidas larguras de 320, 390, 768 e 1440 pixels, sem rolagem lateral ou erros JavaScript nas capturas. As fotografias carregaram com serviços externos bloqueados. Essa etapa altera intencionalmente o layout; a comparação de pixels acima pertence somente à refatoração anterior.
+
 ## Publicação no Railway
 
 O `railway.json` mantém instalação, inicialização com `npm start` e health check em `/api/health`.
@@ -214,4 +233,4 @@ Configure `NODE_ENV=production`, credenciais próprias, `PUBLIC_URL` e SMTP. Use
 
 Mantenha uma instância para a rotina atual de lembretes. Antes de atualizar dados reais, mantenha backup consistente do SQLite e valide a restauração. A auditoria executou migrações em bancos de teste e não acessou o banco hospedado.
 
-A configuração considera um proxy confiável. HTTPS, retenção e backup dependem da hospedagem. Fontes e fotografias dependem dos serviços externos já utilizados. A revisão foi preparada para integração por pull request; a publicação é uma etapa separada.
+A configuração considera um proxy confiável. HTTPS, retenção e backup dependem da hospedagem. As fontes usam serviço externo com alternativas locais; as fotografias são servidas pelo próprio projeto. As alterações são preparadas para integração por pull request; a publicação é uma etapa separada.

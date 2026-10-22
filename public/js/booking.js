@@ -76,7 +76,7 @@ function updateBookingStep() {
     const html = missing
       .map(
         (item) =>
-          `<li><button type="button" class="requirement-item" data-focus-field="${item.id}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.message)}</span></button></li>`
+          `<li><button type="button" class="requirement-item" data-focus-field="${item.id}" title="${escapeHtml(item.message)}" aria-label="${escapeHtml(`${item.label}: ${item.message}`)}"><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.message)}</span></button></li>`
       )
       .join('');
     if (list.dataset.rendered !== html) {

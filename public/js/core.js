@@ -86,16 +86,39 @@ function setBusy(button, busy, busyText = 'Aguarde...') {
     button.disabled = false;
   }
 }
+const modalOpeners = new WeakMap();
+
+function updateModalState() {
+  const hasOpenModal = !!$('.modal-backdrop:not(.hidden)');
+  document.body.style.overflow = hasOpenModal ? 'hidden' : '';
+  document.body.classList.toggle('modal-open', hasOpenModal);
+  const bookingBar = $('#mobileBookingBar');
+  if (bookingBar) bookingBar.inert = hasOpenModal || !bookingBar.classList.contains('is-visible');
+}
+
 function openModal(id) {
   const modal = document.getElementById(id);
+  if (modal.classList.contains('hidden')) modalOpeners.set(modal, document.activeElement);
   modal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
+  updateModalState();
   const focusable = modal.querySelector('input,button,select');
-  if (focusable) setTimeout(() => focusable.focus(), 40);
+  if (focusable)
+    setTimeout(() => {
+      if (!modal.classList.contains('hidden')) focusable.focus();
+    }, 40);
 }
 function closeModal(id) {
-  document.getElementById(id)?.classList.add('hidden');
-  if (!$('.modal-backdrop:not(.hidden)')) document.body.style.overflow = '';
+  const modal = document.getElementById(id);
+  if (!modal || modal.classList.contains('hidden')) return;
+  modal.classList.add('hidden');
+  updateModalState();
+  const opener = modalOpeners.get(modal);
+  if (opener?.isConnected && opener.getClientRects().length > 0) {
+    opener.focus({ preventScroll: true });
+  } else {
+    const menuToggle = $('#menuToggle');
+    if (menuToggle?.getClientRects().length) menuToggle.focus({ preventScroll: true });
+  }
 }
 function phoneDigits(value) {
   let n = String(value || '').replace(/\D/g, '');

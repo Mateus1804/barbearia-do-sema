@@ -1,5 +1,7 @@
 # Registro de auditoria técnica
 
+Este registro descreve a refatoração anterior à renovação visual, consolidada no commit `1b7ed09`. O layout, as fotografias e as verificações posteriores estão no [registro do frontend](frontend.md).
+
 **Projeto:** Barbearia do Semá  
 **Data:** 21/10/2026  
 **Referência de entrada:** `f319fd9cccdcfb35bb28ae5844ad0a27caba9882`  
