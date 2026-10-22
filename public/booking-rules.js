@@ -14,6 +14,7 @@
   const BR_PHONE = /^[1-9][1-9](?:9\d{8}|\d{8})$/;
   // Número internacional: sempre começa com "+" seguido de 8 a 15 dígitos (padrão E.164).
   const INTL_PHONE = /^\+\d{8,15}$/;
+  const CUSTOMER_CHANGE_NOTICE_MS = 2 * 60 * 60_000;
   const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   // Forma canônica guardada no banco:
@@ -36,8 +37,10 @@
   function formatPhone(value) {
     const canonical = canonicalPhone(value);
     if (canonical.startsWith('+')) return canonical;
-    if (canonical.length === 11) return `(${canonical.slice(0, 2)}) ${canonical.slice(2, 7)}-${canonical.slice(7)}`;
-    if (canonical.length === 10) return `(${canonical.slice(0, 2)}) ${canonical.slice(2, 6)}-${canonical.slice(6)}`;
+    if (canonical.length === 11)
+      return `(${canonical.slice(0, 2)}) ${canonical.slice(2, 7)}-${canonical.slice(7)}`;
+    if (canonical.length === 10)
+      return `(${canonical.slice(0, 2)}) ${canonical.slice(2, 6)}-${canonical.slice(6)}`;
     return canonical;
   }
 
@@ -51,9 +54,16 @@
     const missing = [];
     const add = (id, label, message) => missing.push({ id, label, message });
 
-    if (String(values.nome || '').trim().length < 2) add('clientName', 'Seu nome', 'Informe seu nome completo.');
-    if (!isValidPhone(values.telefone)) add('clientPhone', 'Telefone', 'Informe um fixo ou celular com DDD, ou um número internacional começando com +.');
-    if (!isValidEmail(values.email)) add('clientEmail', 'E-mail', 'Informe um e-mail válido para receber os lembretes.');
+    if (String(values.nome || '').trim().length < 2)
+      add('clientName', 'Seu nome', 'Informe seu nome completo.');
+    if (!isValidPhone(values.telefone))
+      add(
+        'clientPhone',
+        'Telefone',
+        'Informe um fixo ou celular com DDD, ou um número internacional começando com +.'
+      );
+    if (!isValidEmail(values.email))
+      add('clientEmail', 'E-mail', 'Informe um e-mail válido para receber os lembretes.');
     if (!values.servico) add('serviceSelect', 'Serviço', 'Escolha o serviço desejado.');
     if (!values.data) add('appointmentDate', 'Dia', 'Escolha o dia do atendimento.');
     if (!values.hora) add('appointmentTime', 'Horário', 'Escolha um horário livre.');
@@ -61,5 +71,12 @@
     return missing;
   }
 
-  return { canonicalPhone, isValidPhone, formatPhone, isValidEmail, missingBookingFields };
+  return {
+    CUSTOMER_CHANGE_NOTICE_MS,
+    canonicalPhone,
+    isValidPhone,
+    formatPhone,
+    isValidEmail,
+    missingBookingFields
+  };
 });

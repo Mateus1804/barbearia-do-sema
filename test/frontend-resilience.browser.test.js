@@ -1,6 +1,7 @@
 // Robustez do frontend (Playwright): sessão do admin ao recarregar, elementos ausentes no DOM e falhas de rede.
 // Cada teste trava um bug já corrigido. Se o Chromium não estiver instalado, os testes são pulados.
-const { test, before, after } = require('node:test');
+const { before, after } = require('node:test');
+const { createBrowserTest } = require('../test-support/browser');
 const assert = require('node:assert/strict');
 process.env.DB_PATH = ':memory:';
 process.env.ADMIN_PASSWORD = 'test-only-password';
@@ -28,7 +29,7 @@ after(async () => {
   await new Promise(resolve => server.close(resolve));
 });
 
-const skipIfNoBrowser = () => (launchError ? { skip: `Chromium indisponível: ${launchError.message.split('\n')[0]}` } : {});
+const browserTest = createBrowserTest(() => launchError);
 
 function bookableDate(daysAhead) {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date());
@@ -68,7 +69,7 @@ const fakeCreated = { message: 'ok', lembretes_email_ativos: false, agendamento:
 
 // --- Sessão do administrador ao recarregar a página -------------------------------------------------
 
-test('com token de admin salvo, ao carregar o site o painel abre logado e já busca a agenda', skipIfNoBrowser(), async () => {
+browserTest('com token de admin salvo, ao carregar o site o painel abre logado e já busca a agenda', async () => {
   const { context, page, pageErrors } = await openSite({ adminToken: 'token-de-teste' });
   try {
     const agendaRequests = [];
@@ -87,7 +88,7 @@ test('com token de admin salvo, ao carregar o site o painel abre logado e já bu
   } finally { await context.close(); }
 });
 
-test('sem token salvo, o painel do admin continua na tela de login e nada é pedido ao servidor', skipIfNoBrowser(), async () => {
+browserTest('sem token salvo, o painel do admin continua na tela de login e nada é pedido ao servidor', async () => {
   const { context, page } = await openSite();
   try {
     let adminCalls = 0;
@@ -102,7 +103,7 @@ test('sem token salvo, o painel do admin continua na tela de login e nada é ped
 
 // --- Elemento ausente no DOM -------------------------------------------------------------------------
 
-test('o agendamento não quebra se o checkbox do WhatsApp não existir no HTML e envia whatsapp=false', skipIfNoBrowser(), async () => {
+browserTest('o agendamento não quebra se o checkbox do WhatsApp não existir no HTML e envia whatsapp=false', async () => {
   const { context, page, pageErrors } = await openSite();
   try {
     const bodies = [];
@@ -123,7 +124,7 @@ test('o agendamento não quebra se o checkbox do WhatsApp não existir no HTML e
   } finally { await context.close(); }
 });
 
-test('o checkbox do WhatsApp marcado ou desmarcado é enviado como true ou false', skipIfNoBrowser(), async () => {
+browserTest('o checkbox do WhatsApp marcado ou desmarcado é enviado como true ou false', async () => {
   const { context, page } = await openSite();
   try {
     const bodies = [];
@@ -149,7 +150,7 @@ test('o checkbox do WhatsApp marcado ou desmarcado é enviado como true ou false
 
 // --- Falhas de rede ----------------------------------------------------------------------------------
 
-test('sem conexão, o cliente vê uma mensagem clara e o botão volta a funcionar', skipIfNoBrowser(), async () => {
+browserTest('sem conexão, o cliente vê uma mensagem clara e o botão volta a funcionar', async () => {
   const { context, page, pageErrors } = await openSite();
   try {
     await page.route('**/api/appointments', route => (route.request().method() === 'POST' ? route.abort('internetdisconnected') : route.continue()));
@@ -166,7 +167,7 @@ test('sem conexão, o cliente vê uma mensagem clara e o botão volta a funciona
   } finally { await context.close(); }
 });
 
-test('sem conexão, a consulta de horários também avisa em vez de mostrar erro técnico', skipIfNoBrowser(), async () => {
+browserTest('sem conexão, a consulta de horários também avisa em vez de mostrar erro técnico', async () => {
   const { context, page } = await openSite();
   try {
     await loadSite(page);
@@ -178,7 +179,7 @@ test('sem conexão, a consulta de horários também avisa em vez de mostrar erro
   } finally { await context.close(); }
 });
 
-test('erros devolvidos pelo servidor continuam aparecendo com a mensagem original (não viram "sem conexão")', skipIfNoBrowser(), async () => {
+browserTest('erros devolvidos pelo servidor continuam aparecendo com a mensagem original (não viram "sem conexão")', async () => {
   const { context, page } = await openSite();
   try {
     await page.route('**/api/appointments', route => (route.request().method() === 'POST'

@@ -84,6 +84,14 @@ test('a API responde ao health check no fuso de Brasília', async () => {
   assert.equal(body.timezone, 'America/Sao_Paulo');
 });
 
+test('o painel recusa períodos com datas que não existem no calendário', async () => {
+  for (const [from, to] of [['2026-02-30', '2026-03-01'], ['2026-02-01', '2026-02-31'], ['2026-13-01', '2026-13-02']]) {
+    const response = await admin('GET', `/admin/appointments?de=${from}&ate=${to}`);
+    assert.equal(response.status, 400);
+    assert.equal(response.body.error, 'Período inválido.');
+  }
+});
+
 test('o cliente consulta os próprios agendamentos só com telefone e e-mail corretos', async () => {
   const ana = customer(1);
   const created = await book(ana, { data: openDay(1), hora: '09:00' });
