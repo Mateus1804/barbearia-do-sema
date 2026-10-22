@@ -4,9 +4,11 @@ import { bindBookingForm, updateBookingStep, updateBookingSummary } from './js/b
 import { bindCustomerArea } from './js/customer.js';
 import { bindAdminArea, setAdminView, loadAdminAppointments } from './js/admin.js';
 import { bindPageChrome } from './js/page.js';
+import { bindGallery } from './js/gallery.js';
 
 async function init() {
   bindPageChrome();
+  bindGallery();
   bindBookingForm();
   bindCustomerArea();
   bindAdminArea();
