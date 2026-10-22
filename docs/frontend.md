@@ -1,7 +1,9 @@
 # Renovação do frontend
 
-**Data:** 21/10/2026  
-**Base:** `6c4939a33d56d4df579caf24fbbf9995ebd18c43`  
+**Data:** 21/10/2026
+
+**Base:** `6c4939a33d56d4df579caf24fbbf9995ebd18c43`
+
 **Ambiente:** Linux, Node.js 24.19.0, npm 11.9.0 e Chromium pelo Playwright do projeto.
 
 ## Interface
