@@ -242,3 +242,5 @@ A operação conta com backups locais agendados, checksum, verificação de inte
 Os lembretes usam reservas persistentes no SQLite e tentativas limitadas à janela de envio. A sessão administrativa mantém uma alternativa em memória quando o armazenamento do navegador é bloqueado. Os preços redondos e a consulta por telefone ou e-mail permanecem iguais.
 
 Os comandos, as condições de retomada e os limites estão em [Operação e recuperação](docs/operacao.md). A comprovação de posse do contato permanece como proposta de produto. O workflow de qualidade executa lint e testes com Chromium obrigatório e envio simulado de e-mail.
+
+Nesta revisão de confiabilidade, o [CI com Chromium obrigatório](https://github.com/Mateus1804/barbearia-do-sema/actions/runs/40159900090) aprovou **122 testes, sem falhas ou testes pulados**, além do lint. Foram cobertos bloqueios de armazenamento, backup com recuperação isolada, integridade e retenção, tentativas de lembretes e concorrência entre conexões SQLite. Os testes não acessaram a produção nem enviaram e-mails reais.

@@ -2,7 +2,7 @@
 
 ## Configuração
 
-Os backups locais ficam habilitados por padrão para bancos em arquivo. O primeiro ciclo ocorre após a inicialização; os seguintes usam BACKUP_INTERVAL_HOURS, com padrão de 24 horas. BACKUP_KEEP mantém pelo menos os sete pares verificados mais recentes; arquivos com menos de uma hora não entram na exclusão por retenção.
+Os backups locais ficam habilitados por padrão para bancos em arquivo. O primeiro ciclo ocorre após a inicialização; os seguintes usam BACKUP_INTERVAL_HOURS, com padrão de 24 horas. BACKUP_KEEP define o número mínimo de pares verificados recentes, com padrão de sete e mínimo de dois; arquivos com menos de uma hora não entram na exclusão por retenção.
 
 BACKUP_DIR aponta por padrão para a pasta backups ao lado do banco. O destino deve ficar fora de public/ e em volume persistente. Arquivos são criados com modo 0600 e novos diretórios com 0700 nos sistemas que oferecem essas permissões. Os arquivos contêm contatos e dados administrativos e não devem ser publicados ou enviados como artefatos de CI.
 
@@ -53,3 +53,5 @@ A consulta por telefone OU e-mail e as autorizações atuais permanecem iguais. 
 Antes das alterações, o lint passou e o ambiente local executou 65 testes aprovados, com 39 testes de navegador pulados por ausência do Chromium. O workflow novo instala Chromium e exige REQUIRE_BROWSER_TESTS=1: indisponibilidade do navegador é falha no CI.
 
 Os testes adicionados usam somente banco temporário, contatos fictícios e transporte SMTP simulado. Os resultados finais pertencem à execução vinculada no pull request. Não houve restauração ou acesso ao banco de produção.
+
+A execução [40159900090 do GitHub Actions](https://github.com/Mateus1804/barbearia-do-sema/actions/runs/40159900090), vinculada à implementação, concluiu **122 testes aprovados, zero falhas e zero testes pulados**, com Chromium obrigatório e lint aprovado. Localmente, a mesma revisão executou 81 testes aprovados e deixou 41 cenários de navegador sem execução por falta do Chromium. Esses resultados não representam envio real de e-mail nem recuperação do volume de produção.
