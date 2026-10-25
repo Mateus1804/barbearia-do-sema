@@ -197,3 +197,43 @@ browserTest('erros devolvidos pelo servidor continuam aparecendo com a mensagem 
     await page.waitForFunction(() => /Não foi possível concluir/.test(document.getElementById('toast').textContent));
   } finally { await context.close(); }
 });
+
+browserTest('armazenamento bloqueado não interrompe serviços nem o cadastro manual', async () => {
+  const { context, page, pageErrors } = await openSite();
+  try {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'sessionStorage', { get() { throw new DOMException('Bloqueado', 'SecurityError'); } });
+    });
+    await page.route('**/api/appointments', route => route.request().method() === 'POST'
+      ? route.fulfill({ status: 201, json: fakeCreated }) : route.continue());
+    await loadSite(page);
+    await fillBookingForm(page);
+    await page.click('#submitBooking');
+    await page.waitForSelector('#bookingSuccess:not(.hidden)');
+    assert.deepEqual(pageErrors, []);
+  } finally { await context.close(); }
+});
+
+browserTest('login e saída funcionam em memória quando gravação e remoção são negadas', async () => {
+  const { context, page, pageErrors } = await openSite();
+  try {
+    await page.addInitScript(() => {
+      Object.defineProperty(window, 'sessionStorage', { get: () => ({
+        getItem: () => null,
+        setItem() { throw new DOMException('Bloqueado', 'SecurityError'); },
+        removeItem() { throw new DOMException('Bloqueado', 'SecurityError'); }
+      }) });
+    });
+    await page.route('**/admin/login', route => route.fulfill({ json: { token: 'token-ficticio', email: 'admin@example.com' } }));
+    await page.route('**/admin/appointments**', route => route.fulfill({ json: { agendamentos: [], bloqueios: [], feriados: [] } }));
+    await loadSite(page);
+    await page.click('#openAdmin');
+    await page.fill('#adminEmail', 'admin@example.com');
+    await page.fill('#adminPassword', 'senha-ficticia');
+    await page.locator('#adminLoginForm').evaluate(form => form.requestSubmit());
+    await page.waitForSelector('#adminDashboard:not(.hidden)');
+    await page.click('#adminLogout');
+    await page.waitForSelector('#adminLoginPanel:not(.hidden)');
+    assert.deepEqual(pageErrors, []);
+  } finally { await context.close(); }
+});

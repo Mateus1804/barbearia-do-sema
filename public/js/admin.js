@@ -1,3 +1,4 @@
+import { adminSession } from './session.mjs';
 import { loadAvailableSlots } from './availability.js';
 import {
   $,
@@ -31,10 +32,10 @@ async function loginAdmin(event) {
       body: JSON.stringify({ email: $('#adminEmail').value.trim(), senha: $('#adminPassword').value })
     });
     state.adminToken = data.token;
-    sessionStorage.setItem('sema_admin_token', data.token);
+    const persisted = adminSession.write(data.token);
     setAdminView(true);
     await loadAdminAppointments();
-    showToast('Bem-vindo ao painel da barbearia.');
+    showToast(persisted ? 'Bem-vindo ao painel da barbearia.' : 'Bem-vindo ao painel. A sessão ficará apenas nesta página porque o navegador bloqueou o armazenamento.');
   } catch (error) {
     showToast(error.message, 'error');
   } finally {
@@ -86,7 +87,7 @@ async function loadAdminAppointments() {
     root.innerHTML = `<div class="empty-state">${escapeHtml(error.message)}</div>`;
     if (/sessão|expirada/i.test(error.message)) {
       state.adminToken = '';
-      sessionStorage.removeItem('sema_admin_token');
+      adminSession.clear();
       setAdminView(false);
     }
   }
@@ -244,7 +245,7 @@ function bindAdminArea() {
   $('#adminLoginForm').addEventListener('submit', loginAdmin);
   $('#adminLogout').addEventListener('click', () => {
     state.adminToken = '';
-    sessionStorage.removeItem('sema_admin_token');
+    adminSession.clear();
     setAdminView(false);
     $('#adminPassword').value = '';
     showToast('Você saiu do painel.');

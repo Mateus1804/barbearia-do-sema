@@ -1,4 +1,5 @@
 import '../booking-rules.js';
+import { adminSession } from './session.mjs';
 
 const BookingRules = globalThis.BookingRules;
 
@@ -9,7 +10,7 @@ const state = {
   services: [],
   customerAuth: null,
   customerAppointments: [],
-  adminToken: sessionStorage.getItem('sema_admin_token') || '',
+  adminToken: adminSession.read(),
   toastTimer: null
 };
 
