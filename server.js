@@ -2,6 +2,7 @@
 
 require('dotenv').config();
 const { createApplication } = require('./src/app');
+const { startBackupScheduler } = require('./src/backup-scheduler');
 const runtime = createApplication();
 const { app, dispatchDueReminders, config } = runtime;
 const { PORT, ADMIN_PASSWORD, JWT_SECRET, SMTP_CONFIGURED } = config;
@@ -16,6 +17,7 @@ if (require.main === module) {
       console.warn(
         'AVISO: configure SMTP_HOST, SMTP_USER, SMTP_PASS e EMAIL_FROM para ativar os lembretes por e-mail.'
       );
+    startBackupScheduler({ db: runtime.db, config });
     dispatchDueReminders().catch((error) =>
       console.error('[lembretes] Erro no ciclo inicial:', error.message)
     );

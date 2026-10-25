@@ -29,7 +29,7 @@ module.exports = [
     }
   },
   {
-    files: ['public/app.js', 'public/js/**/*.js'],
+    files: ['public/app.js', 'public/js/**/*.{js,mjs}'],
     languageOptions: {
       sourceType: 'module',
       globals: {

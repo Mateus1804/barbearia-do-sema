@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { createApplication } = require('../src/app');
 const { readConfig } = require('../src/config');
 const { utcToLocal } = require('../src/calendar');
-const { shouldSendReminder } = require('../src/reminders');
+const { shouldSendReminder, createReminderService } = require('../src/reminders');
 const HOUR_MS = 60 * 60_000;
 const NOW = Date.parse('2026-10-21T12:00:00.000Z');
 
@@ -103,9 +103,10 @@ test('a janela inclui o instante previsto e exclui o limite de 15 minutos', () =
 
 test('uma falha do transporte mantém o lembrete pendente para a próxima tentativa', async (context) => {
   let calls = 0;
-  const { db, messages, dispatchDueReminders } = setup(context, () => {
+  const runtime = setup(context, () => {
     if (++calls === 1) throw new Error('SMTP simulado indisponível');
   });
+  const { db, messages, dispatchDueReminders } = runtime;
   const logs = [];
   context.mock.method(console, 'error', (...args) => logs.push(args));
   const id = insert(db);
@@ -115,7 +116,11 @@ test('uma falha do transporte mantém o lembrete pendente para a próxima tentat
     null
   );
   await dispatchDueReminders();
+  assert.equal(messages.length, 1, 'o recuo impede repetição imediata');
+  runtime.advance(60000);
+  await dispatchDueReminders();
   assert.equal(messages.length, 2);
+  assert.equal(messages[0].messageId, messages[1].messageId);
   assert.equal(logs.length, 1);
   assert.ok(
     db.prepare('SELECT lembrete_3h_enviado_em FROM agendamentos WHERE id=?').get(id).lembrete_3h_enviado_em
@@ -186,4 +191,84 @@ test('o relógio é reavaliado após um envio lento para respeitar a janela dos 
   insert(runtime.db);
   await runtime.dispatchDueReminders();
   assert.equal(runtime.messages.length, 1);
+});
+
+test('dois serviços compartilham a reserva do envio no SQLite', async context => {
+  let release;
+  let started;
+  const waiting = new Promise(resolve => { release = resolve; });
+  const began = new Promise(resolve => { started = resolve; });
+  const runtime = setup(context, async () => { started(); await waiting; });
+  insert(runtime.db);
+  const other = createReminderService({ db: runtime.db, config: runtime.config, mailer: { sendMail: () => { throw new Error('Envio duplicado'); } }, clock: () => NOW });
+  const first = runtime.dispatchDueReminders();
+  await began;
+  await other.dispatchDueReminders();
+  release();
+  await first;
+  assert.equal(runtime.messages.length, 1);
+  assert.equal(runtime.db.prepare('SELECT status,attempts FROM reminder_deliveries').get().status, 'SENT');
+});
+
+test('a reserva vencida pode ser recuperada e uma concluída não é reenviada', async context => {
+  const runtime = setup(context);
+  const id = insert(runtime.db);
+  const appointment = runtime.db.prepare('SELECT * FROM agendamentos WHERE id=?').get(id);
+  runtime.db.prepare("INSERT INTO reminder_deliveries(appointment_id,kind,scheduled_at,starts_at_utc,status,attempts,owner,lease_until) VALUES (?,'3h',?,?,'SENDING',1,'processo-encerrado',?)")
+    .run(id, appointment.programado_em, appointment.starts_at_utc, new Date(NOW - 1).toISOString());
+  await runtime.dispatchDueReminders();
+  await runtime.dispatchDueReminders();
+  assert.equal(runtime.messages.length, 1);
+  assert.equal(runtime.db.prepare('SELECT attempts FROM reminder_deliveries').get().attempts, 2);
+});
+
+test('a pausa operacional impede envios até a retomada explícita', async context => {
+  const runtime = setup(context);
+  insert(runtime.db);
+  runtime.db.prepare("UPDATE operational_flags SET value='1' WHERE key='reminders_paused'").run();
+  await runtime.dispatchDueReminders();
+  assert.equal(runtime.messages.length, 0);
+  runtime.db.prepare("UPDATE operational_flags SET value='0' WHERE key='reminders_paused'").run();
+  await runtime.dispatchDueReminders();
+  assert.equal(runtime.messages.length, 1);
+});
+
+test('o limite de tentativas e a janela de elegibilidade são preservados', async context => {
+  const runtime = setup(context, () => { throw new Error('Falha fictícia'); });
+  context.mock.method(console, 'error', () => {});
+  insert(runtime.db);
+  for (const delay of [0, 60000, 120000, 240000, 300000, 60000]) {
+    runtime.advance(delay);
+    await runtime.dispatchDueReminders();
+  }
+  assert.equal(runtime.messages.length, 5);
+  const row = runtime.db.prepare('SELECT * FROM reminder_deliveries').get();
+  assert.equal(row.status, 'EXPIRED');
+  assert.equal(row.attempts, 5);
+  assert.equal(row.error_code, 'SMTP_ERROR');
+});
+
+test('a reserva também impede duplicidade entre conexões distintas ao mesmo arquivo', async context => {
+  const fs = require('node:fs/promises');
+  const path = require('node:path');
+  const folder = await fs.mkdtemp(path.join(require('node:os').tmpdir(), 'sema-workers-'));
+  const config = readConfig({ DB_PATH: path.join(folder, 'agenda.sqlite'), ADMIN_PASSWORD: 'Senha ficticia para teste' });
+  const { createDatabase } = require('../src/database');
+  const firstDb = createDatabase(config);
+  const secondDb = new (require('better-sqlite3'))(config.DB_PATH);
+  context.after(async () => { firstDb.close(); secondDb.close(); await fs.rm(folder, { recursive: true, force: true }); });
+  let release;
+  let notify;
+  const waiting = new Promise(resolve => { release = resolve; });
+  const started = new Promise(resolve => { notify = resolve; });
+  let sends = 0;
+  const first = createReminderService({ db: firstDb, config, clock: () => NOW, mailer: { sendMail: async () => { sends += 1; notify(); await waiting; } } });
+  const second = createReminderService({ db: secondDb, config, clock: () => NOW, mailer: { sendMail: async () => { sends += 1; } } });
+  insert(firstDb);
+  const ongoing = first.dispatchDueReminders();
+  await started;
+  await second.dispatchDueReminders();
+  release();
+  await ongoing;
+  assert.equal(sends, 1);
 });
