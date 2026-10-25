@@ -225,6 +225,25 @@ O [registro da auditoria técnica](docs/auditoria-tecnica.md) apresenta arquivos
 
 A renovação visual posterior manteve os 98 testes e acrescentou seis cenários de navegador: **104 aprovados, zero falhas e zero pulados**, com `REQUIRE_BROWSER_TESTS=1 npm test`. O `npm run lint` passou sem erros ou avisos. Foram conferidas larguras de 320, 390, 768 e 1440 pixels, sem rolagem lateral ou erros JavaScript nas capturas. As fotografias carregaram com serviços externos bloqueados. Essa etapa altera intencionalmente o layout; a comparação de pixels acima pertence somente à refatoração anterior.
 
+## Ícones
+
+Todos os ícones vêm do [Tabler Icons](https://tabler.io/icons) (licença MIT, © Paweł Kuna), copiados sem alteração para o sprite no início do `public/index.html`. Não desenhamos ícones à mão: para trocar um, copie o SVG do Tabler e mantenha o `id`.
+
+| `id` no site | Tabler | Uso |
+|---|---|---|
+| `icon-scissors` | `scissors` | Corte de cabelo, marca, selo |
+| `icon-razor` | `razor` | Barba |
+| `icon-clipper` | `razor-electric` | Máquina de corte (destaque do hero) |
+| `icon-eye` | `eye` | Sobrancelha |
+| `icon-brush` | `brush` | Pintura capilar |
+| `icon-calendar`, `icon-pin`, `icon-clock`, `icon-phone`, `icon-mail`, `icon-user` | `calendar-check`, `map-pin`, `clock`, `phone`, `mail`, `user` | Agendamento, localização, horários, contato |
+| setas, chevrons, check, fechar, menu, expandir | `arrow-*`, `chevron-*`, `check`, `circle-check`, `x`, `menu-2`, `arrows-maximize` | Interface |
+| `icon-tv`, `icon-snowflake`, `icon-bag`, `icon-child`, `icon-image`, `icon-lock` | `device-tv`, `snowflake`, `shopping-bag`, `mood-kid`, `photo`, `lock` | Comodidades, galeria, área restrita |
+
+## Movimento e rolagem
+
+`public/js/motion.js` e `public/motion.css` fazem o scrollytelling (revelações, parallax, barra de progresso, menu com a seção em foco). A rolagem é sempre a do navegador: o script só lê a posição e escreve variáveis CSS. Com `prefers-reduced-motion: reduce`, ou sem JavaScript, tudo aparece de imediato. Os testes estão em `test/motion.browser.test.js`.
+
 ## Publicação no Railway
 
 O `railway.json` mantém instalação, inicialização com `npm start` e health check em `/api/health`.
