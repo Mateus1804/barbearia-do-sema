@@ -39,21 +39,21 @@ after(async () => {
 
 const browserTest = createBrowserTest(() => launchError);
 
-// `settle: true` desliga só a revelação ao rolar (opacity/transform de entrada) para medir o layout final.
+// `settle: true` desliga só a revelação ao rolar (opacity, translate, scale e clip-path de entrada) para medir o layout final.
 async function open({ width, height }, { settle = true } = {}) {
   const context = await browser.newContext({ viewport: { width, height } });
   const page = await context.newPage();
   await page.route(url => !url.href.startsWith(base), route => route.abort()); // sem internet: fontes e fotos externas
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => document.querySelectorAll('#serviceSelect option').length > 1);
-  if (settle) await page.addStyleTag({ content: '.motion-reveal{opacity:1!important;transform:none!important;transition:none!important}' });
+  if (settle) await page.addStyleTag({ content: '.motion-reveal,.motion-reveal .mw>span,.motion-reveal img,.parallax-frame>img{opacity:1!important;translate:none!important;scale:none!important;clip-path:none!important;transform:none!important;transition:none!important}' });
   return { context, page };
 }
 const rectOf = (page, selector, nth = 0) => page.locator(selector).nth(nth).evaluate(el => {
   const r = el.getBoundingClientRect();
   return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height, cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
 });
-const near = (actual, expected, message) => assert.ok(Math.abs(actual - expected) <= TOLERANCE, `${message} (obtido ${actual.toFixed(1)}, esperado ${expected.toFixed(1)})`);
+const near = (actual, expected, message, tolerance = TOLERANCE) => assert.ok(Math.abs(actual - expected) <= tolerance, `${message} (obtido ${actual.toFixed(1)}, esperado ${expected.toFixed(1)})`);
 
 for (const viewport of VIEWPORTS) {
   browserTest(`${viewport.name}: a página não tem rolagem horizontal`, async () => {
@@ -134,7 +134,10 @@ for (const viewport of VIEWPORTS) {
     try {
       // Elementos decorativos que giram de propósito (estrela do cartão, ornamento da citação) ficam de fora.
       const selectors = ['.map-label', '.map-pin', '.featured-ribbon', '.about-stamp'];
-      for (const selector of selectors) await page.locator(selector).first().evaluate(el => el.scrollIntoView({ block: 'center' }));
+      for (const selector of selectors) {
+        await page.locator(selector).first().evaluate(el => el.scrollIntoView({ block: 'center' }));
+        await page.waitForTimeout(250); // o observador de revelação só enxerga o elemento no quadro seguinte
+      }
       await page.locator('.map-label').evaluate(el => el.scrollIntoView({ block: 'center' }));
       await page.waitForTimeout(1800); // deixa as entradas terminarem
       const measure = async () => {
@@ -146,12 +149,13 @@ for (const viewport of VIEWPORTS) {
         return result;
       };
       const animated = await measure();
-      await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important}.motion-reveal{opacity:1!important;transform:none!important}' });
+      await page.addStyleTag({ content: '*,*::before,*::after{animation:none!important;transition:none!important}.motion-reveal,.motion-reveal .mw>span{opacity:1!important;translate:none!important;scale:none!important;clip-path:none!important;transform:none!important}' });
       await page.waitForTimeout(300);
       const still = await measure();
       for (const selector of selectors) {
         near(animated[selector].x, still[selector].x, `${selector}: posição horizontal com e sem animação`);
-        near(animated[selector].y, still[selector].y, `${selector}: posição vertical com e sem animação`);
+        // O selo da seção "experiência" tem parallax de propósito: até 22px para cima ou para baixo.
+        near(animated[selector].y, still[selector].y, `${selector}: posição vertical com e sem animação`, selector === '.about-stamp' ? 22.5 : TOLERANCE);
       }
     } finally { await context.close(); }
   });

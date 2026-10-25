@@ -87,8 +87,22 @@ function updateBookingStep() {
   }
   return missing;
 }
+// Cada serviço tem o seu ícone; o resumo da reserva acompanha a escolha do cliente.
+const SERVICE_ICONS = [
+  [/barba/i, 'icon-razor'],
+  [/sobrancelha/i, 'icon-eye'],
+  [/pintura|colora|luzes|descolora/i, 'icon-brush']
+];
+function serviceIcon(name = '') {
+  const match = SERVICE_ICONS.find(([pattern]) => pattern.test(name));
+  return match ? match[1] : 'icon-scissors';
+}
+
 function updateBookingSummary() {
   const service = getService($('#serviceSelect').value);
+  // "Combo corte + barba" cai no ícone da barba pela regra acima; o combo usa a tesoura, como no cartão.
+  const icon = service && /corte/i.test(service.nome) ? 'icon-scissors' : serviceIcon(service?.nome);
+  $('.summary-icon use')?.setAttribute('href', `#${icon}`);
   $('#summaryService').textContent = service
     ? `${service.nome} · ${service.duracao_minutos} min`
     : 'Selecione um serviço';
