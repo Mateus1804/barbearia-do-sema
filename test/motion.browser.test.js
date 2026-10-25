@@ -106,7 +106,7 @@ browserTest('títulos são divididos em palavras sem perder o texto lido por lei
   try {
     const title = page.locator('#servicos h2');
     assert.equal(await title.evaluate((element) => element.textContent.replace(/\s+/g, ' ').trim()), 'O que vamos fazer hoje?');
-    assert.equal(await title.locator('.mw').count(), 3);
+    assert.equal(await title.locator('.mw').count(), 5);
     assert.equal(await title.locator('em').count(), 1);
     // Cada título tem exatamente o mesmo texto do HTML original servido pelo servidor.
     const html = await (await fetch(base)).text();
@@ -332,3 +332,4 @@ browserTest('depois de revelados, os elementos terminam exatamente no lugar, no 
     await context.close();
   }
 });
+
