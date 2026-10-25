@@ -227,14 +227,14 @@ A renovação visual posterior manteve os 98 testes e acrescentou seis cenários
 
 ## Ícones
 
-Todos os ícones vêm do [Tabler Icons](https://tabler.io/icons) (licença MIT, © Paweł Kuna), copiados sem alteração para o sprite no início do `public/index.html`. Não desenhamos ícones à mão: para trocar um, copie o SVG do Tabler e mantenha o `id`.
+Os ícones de interface utilizam Tabler Icons (MIT, © Paweł Kuna). Os serviços utilizam também Eyebrow e ShaverOne, do IconPark (Apache-2.0), e Beard, de Lorc/Game-icons.net (CC BY 3.0). As adaptações e licenças estão em [Créditos dos ícones](public/creditos-icones.html), acessível pelo rodapé. Os vetores são locais e não exigem uma biblioteca JavaScript adicional.
 
 | `id` no site | Tabler | Uso |
 |---|---|---|
 | `icon-scissors` | `scissors` | Corte de cabelo, marca, selo |
-| `icon-razor` | `razor` | Barba |
-| `icon-clipper` | `razor-electric` | Máquina de corte (destaque do hero) |
-| `icon-eye` | `eye` | Sobrancelha |
+| `icon-beard` | Lorc `beard` | Barba e combo |
+| `icon-clipper` | IconPark `ShaverOne` | Máquina de corte |
+| `icon-eyebrow` | IconPark `Eyebrow` | Sobrancelha |
 | `icon-brush` | `brush` | Pintura capilar |
 | `icon-calendar`, `icon-pin`, `icon-clock`, `icon-phone`, `icon-mail`, `icon-user` | `calendar-check`, `map-pin`, `clock`, `phone`, `mail`, `user` | Agendamento, localização, horários, contato |
 | setas, chevrons, check, fechar, menu, expandir | `arrow-*`, `chevron-*`, `check`, `circle-check`, `x`, `menu-2`, `arrows-maximize` | Interface |
