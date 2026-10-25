@@ -89,8 +89,8 @@ function updateBookingStep() {
 }
 // Cada serviço tem o seu ícone; o resumo da reserva acompanha a escolha do cliente.
 const SERVICE_ICONS = [
-  [/barba/i, 'icon-razor'],
-  [/sobrancelha/i, 'icon-eye'],
+  [/barba/i, 'icon-beard'],
+  [/sobrancelha/i, 'icon-eyebrow'],
   [/pintura|colora|luzes|descolora/i, 'icon-brush']
 ];
 function serviceIcon(name = '') {

@@ -105,7 +105,7 @@ browserTest('títulos são divididos em palavras sem perder o texto lido por lei
   const { page, context } = await open();
   try {
     const title = page.locator('#servicos h2');
-    assert.equal(await title.evaluate((element) => element.textContent.replace(/\s+/g, ' ').trim()), 'Seu próximo visual.');
+    assert.equal(await title.evaluate((element) => element.textContent.replace(/\s+/g, ' ').trim()), 'O que vamos fazer hoje?');
     assert.equal(await title.locator('.mw').count(), 3);
     assert.equal(await title.locator('em').count(), 1);
     // Cada título tem exatamente o mesmo texto do HTML original servido pelo servidor.
@@ -264,13 +264,13 @@ browserTest('cada serviço tem o seu ícone, e o resumo da reserva acompanha a e
       .evaluateAll((spans) => spans.map((span) => [...span.querySelectorAll('use')].map((use) => use.getAttribute('href'))));
     assert.deepEqual(icons, [
       ['#icon-scissors'],
-      ['#icon-razor'],
-      ['#icon-eye'],
+      ['#icon-beard'],
+      ['#icon-eyebrow'],
       ['#icon-brush'],
-      ['#icon-scissors', '#icon-razor']
+      ['#icon-scissors', '#icon-beard']
     ]);
     const options = await page.locator('#serviceSelect option').allTextContents();
-    const expected = { Barba: '#icon-razor', Sobrancelha: '#icon-eye', Pintura: '#icon-brush', 'Corte de': '#icon-scissors', Combo: '#icon-scissors' };
+    const expected = { Barba: '#icon-beard', Sobrancelha: '#icon-eyebrow', Pintura: '#icon-brush', 'Corte de': '#icon-scissors', Combo: '#icon-scissors' };
     for (const [label, icon] of Object.entries(expected)) {
       const index = options.findIndex((text) => text.startsWith(label));
       assert.ok(index > 0, `serviço ${label} existe`);
@@ -280,7 +280,7 @@ browserTest('cada serviço tem o seu ícone, e o resumo da reserva acompanha a e
     // Ícones que se "desenham" dependem de pathLength em cada traço do símbolo.
     const missing = await page.evaluate(() =>
       [...document.querySelectorAll('symbol[id^="icon-"]')]
-        .filter((symbol) => /icon-(scissors|razor|clipper|eye|brush)$/.test(symbol.id))
+        .filter((symbol) => /icon-(scissors|beard|clipper|eyebrow|brush)$/.test(symbol.id))
         .flatMap((symbol) => [...symbol.querySelectorAll('path,circle,rect')].filter((shape) => !shape.hasAttribute('pathLength')).map(() => symbol.id))
     );
     assert.deepEqual(missing, []);
