@@ -30,7 +30,17 @@ function readConfig(env = process.env) {
     throw new Error('Em produção, defina ADMIN_PASSWORD e um JWT_SECRET único antes de iniciar.');
   }
 
+  const BACKUP_ENABLED = String(env.BACKUP_ENABLED || 'true').toLowerCase() !== 'false';
+  const BACKUP_DIR = env.BACKUP_DIR || path.join(path.dirname(path.resolve(DB_PATH)), 'backups');
+  const BACKUP_KEEP = Number(env.BACKUP_KEEP || 7);
+  const BACKUP_INTERVAL_HOURS = Number(env.BACKUP_INTERVAL_HOURS || 24);
+  const REMINDERS_ENABLED = String(env.REMINDERS_ENABLED || 'true').toLowerCase() !== 'false';
+  if (!Number.isInteger(BACKUP_KEEP) || BACKUP_KEEP < 2 || BACKUP_KEEP > 1000 ||
+      !Number.isFinite(BACKUP_INTERVAL_HOURS) || BACKUP_INTERVAL_HOURS < 1 || BACKUP_INTERVAL_HOURS > 168)
+    throw new Error('Confira BACKUP_KEEP (2 a 1000) e BACKUP_INTERVAL_HOURS (1 a 168).');
+
   return {
+    BACKUP_ENABLED, BACKUP_DIR, BACKUP_KEEP, BACKUP_INTERVAL_HOURS, REMINDERS_ENABLED,
     PORT,
     ADMIN_EMAIL,
     ADMIN_PASSWORD,

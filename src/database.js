@@ -121,6 +121,10 @@ function createDatabase(config) {
   db.exec(`CREATE INDEX IF NOT EXISTS idx_agendamentos_data ON agendamentos(data_agendamento, hora_agendamento);
   CREATE INDEX IF NOT EXISTS idx_agendamentos_telefone ON agendamentos(cliente_telefone);
   CREATE INDEX IF NOT EXISTS idx_agendamentos_email ON agendamentos(cliente_email);`);
+  db.exec("CREATE TABLE IF NOT EXISTS operational_flags (key TEXT PRIMARY KEY,value TEXT NOT NULL)");
+  db.prepare("INSERT OR IGNORE INTO operational_flags(key,value) VALUES ('reminders_paused','0')").run();
+  db.exec("CREATE TABLE IF NOT EXISTS reminder_deliveries (appointment_id INTEGER NOT NULL REFERENCES agendamentos(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK(kind IN ('24h','3h')), scheduled_at TEXT NOT NULL, starts_at_utc TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('PENDING','SENDING','SENT','EXPIRED')), attempts INTEGER NOT NULL DEFAULT 0, owner TEXT, lease_until TEXT, retry_at TEXT, sent_at TEXT, error_code TEXT, PRIMARY KEY(appointment_id,kind,scheduled_at,starts_at_utc))");
+  db.exec('CREATE INDEX IF NOT EXISTS idx_reminder_deliveries_status ON reminder_deliveries(status,retry_at)');
   // Pré-cadastra os clientes encontrados em agendamentos antigos que já tinham e-mail.
   const backfillCustomers = db.prepare(
     `INSERT INTO clientes (cliente_nome,cliente_telefone,cliente_email,criado_em,atualizado_em) VALUES (?,?,?,?,?) ON CONFLICT(cliente_telefone,cliente_email) DO UPDATE SET cliente_nome=excluded.cliente_nome, atualizado_em=excluded.atualizado_em`
