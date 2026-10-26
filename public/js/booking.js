@@ -144,7 +144,7 @@ async function submitBooking(event) {
     $('#bookingSuccess').dataset.email = body.email;
     state.customerAuth = { telefone: body.telefone, email: body.email };
     $('#reminderSetupNotice').textContent = data.lembretes_email_ativos
-      ? 'Você receberá lembretes por e-mail 24 horas e 3 horas antes do atendimento. O cancelamento pelo site pode ser feito até 2 horas antes do horário marcado.'
+      ? 'Enviaremos lembretes por e-mail 24 horas e 3 horas antes do atendimento, quando a reserva for feita com essa antecedência. O cancelamento pelo site pode ser feito até 2 horas antes.'
       : 'Seu agendamento está salvo, mas os lembretes por e-mail ainda não estão ativos porque a barbearia precisa configurar o serviço de envio. O cancelamento pelo site pode ser feito até 2 horas antes do horário marcado.';
     showToast('Agendamento realizado com sucesso!');
     $('#bookingSuccess').scrollIntoView({ behavior: 'smooth', block: 'center' });
