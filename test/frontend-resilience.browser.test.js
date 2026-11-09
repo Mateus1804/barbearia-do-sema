@@ -237,3 +237,55 @@ browserTest('login e saída funcionam em memória quando gravação e remoção 
     assert.deepEqual(pageErrors, []);
   } finally { await context.close(); }
 });
+
+browserTest('o aviso de lembretes não promete o que depende da antecedência da reserva', async () => {
+  const { context, page } = await openSite();
+  try {
+    await page.route('**/api/appointments', (route) =>
+      route.request().method() === 'POST'
+        ? route.fulfill({ status: 201, json: { ...fakeCreated, lembretes_email_ativos: true } })
+        : route.continue()
+    );
+    await loadSite(page);
+    await fillBookingForm(page);
+    await page.click('#submitBooking');
+    await page.waitForSelector('#bookingSuccess:not(.hidden)');
+    const notice = await page.locator('#reminderSetupNotice').innerText();
+    assert.match(notice, /Enviaremos lembretes por e-mail 24 horas e 3 horas antes/);
+    assert.match(notice, /quando a reserva for feita com essa antecedência/);
+    assert.doesNotMatch(notice, /Você receberá/);
+  } finally {
+    await context.close();
+  }
+});
+
+browserTest('o atalho do cliente tem o mesmo nome no menu, no modal e no aviso de sucesso', async () => {
+  const { context, page } = await openSite();
+  try {
+    await loadSite(page);
+    assert.match(await page.locator('#openMyAppointments').innerText(), /^\s*Meus agendamentos\s*$/);
+    await page.locator('#openMyAppointments').click();
+    assert.match(await page.locator('#customerModalTitle').innerText(), /Meus\s+agendamentos/);
+    assert.match(await page.locator('#successMyAppointments').textContent(), /Ver meus agendamentos/);
+  } finally {
+    await context.close();
+  }
+});
+
+browserTest('links de ação usam o ícone do que fazem (WhatsApp, rota, site externo) e não uma seta genérica', async () => {
+  const { context, page } = await openSite();
+  try {
+    await loadSite(page);
+    const iconOf = (text) =>
+      page.locator('a', { hasText: text }).first().locator('use').first().getAttribute('href');
+    assert.equal(await iconOf('Chamar no WhatsApp'), '#icon-whatsapp');
+    assert.equal(await iconOf('Converse com a gente'), '#icon-whatsapp');
+    assert.equal(await iconOf('Traçar minha rota'), '#icon-route');
+    assert.equal(await iconOf('Abrir no Google Maps'), '#icon-external');
+    for (const id of ['icon-whatsapp', 'icon-route', 'icon-external']) {
+      assert.equal(await page.locator(`symbol#${id}`).count(), 1);
+    }
+  } finally {
+    await context.close();
+  }
+});

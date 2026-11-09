@@ -237,6 +237,7 @@ Os ícones de interface utilizam Tabler Icons (MIT, © Paweł Kuna). Os serviço
 | `icon-eyebrow` | IconPark `Eyebrow` | Sobrancelha |
 | `icon-brush` | `brush` | Pintura capilar |
 | `icon-calendar`, `icon-pin`, `icon-clock`, `icon-phone`, `icon-mail`, `icon-user` | `calendar-check`, `map-pin`, `clock`, `phone`, `mail`, `user` | Agendamento, localização, horários, contato |
+| `icon-whatsapp`, `icon-route`, `icon-external` | `brand-whatsapp`, `route`, `external-link` | Chamar no WhatsApp, traçar rota, abrir no Google Maps |
 | setas, chevrons, check, fechar, menu, expandir | `arrow-*`, `chevron-*`, `check`, `circle-check`, `x`, `menu-2`, `arrows-maximize` | Interface |
 | `icon-tv`, `icon-snowflake`, `icon-bag`, `icon-child`, `icon-image`, `icon-lock` | `device-tv`, `snowflake`, `shopping-bag`, `mood-kid`, `photo`, `lock` | Comodidades, galeria, área restrita |
 

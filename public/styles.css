@@ -3171,3 +3171,14 @@ h1 em {
     clip-path: none;
   }
 }
+
+/* Ícones pequenos precisam de traço mais firme para não "sumirem" (os ícones foram desenhados em 24px). */
+.announcement .icon,
+.service-duration .icon,
+.gallery-note .icon,
+.booking-assistance .icon,
+.footer-links .icon,
+.scroll-cue .icon,
+.services-footnote .icon {
+  stroke-width: 2;
+}
